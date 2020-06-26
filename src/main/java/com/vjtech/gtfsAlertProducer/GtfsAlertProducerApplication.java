@@ -26,6 +26,10 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.util.Strings;
+import org.geotools.geometry.jts.JTSFactoryFinder;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -274,7 +278,11 @@ public class GtfsAlertProducerApplication {
 		
 		String s = getAreaAsString();
 		
-		zetaRoutesRepository.insertRoute(249, "prova", );
+		GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+		Coordinate[] coords  = new Coordinate[] {new Coordinate(0, 2), new Coordinate(2, 0), new Coordinate(8, 6) };
+		LineString line = geometryFactory.createLineString(coords);
+		
+		zetaRoutesRepository.insertRoute(249, "prova", line );
 		
 		//Scrivere S nella tabella 
 		/*
