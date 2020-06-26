@@ -22,6 +22,13 @@ public class SessionService {
     public void setBaseURL(String mValue) {
     this.API_BASE_URL = mValue;}
     */
+	
+	@Value("${app.operator_username}")
+	String operator_username;
+
+	@Value("${app.operator_password}")
+	String operator_password;
+
 
 	private ISessionService service;
 
@@ -38,7 +45,7 @@ public class SessionService {
 	}
 
 	public AccessTokenResponse getAccessToken() throws IOException {
-		Call<AccessTokenResponse> retrofitCall = service.getAccessToken("romamobilita@whereapp.it", "prova","password");
+		Call<AccessTokenResponse> retrofitCall = service.getAccessToken(operator_username, operator_password, "password");
 
 		Response<AccessTokenResponse> response = retrofitCall.execute();
 

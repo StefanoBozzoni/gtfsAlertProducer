@@ -1,14 +1,12 @@
 package com.vjtech.gtfsAlertProducer.services.session;
 
 import retrofit2.Call;
-import retrofit2.http.Body;
+
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
 
-import com.vjtech.gtfsAlertProducer.services.JobZoneResponse;
 import com.vjtech.gtfsAlertProducer.services.model.AccessTokenResponse;
-import com.vjtech.gtfsAlertProducer.services.model.JobZoneRequest;
 
 public interface ISessionService {
 	

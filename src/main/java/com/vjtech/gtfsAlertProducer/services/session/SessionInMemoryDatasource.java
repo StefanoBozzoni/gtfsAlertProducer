@@ -7,6 +7,15 @@ public class SessionInMemoryDatasource {
 
 	String accessToken  = "";
 	String refreshToken = "";
+	String md5Checksum  = "";
+
+	public String getMd5Checksum() {
+		return md5Checksum;
+	}
+
+	public void setMd5Checksum(String md5Checksum) {
+		this.md5Checksum = md5Checksum;
+	}
 
 	public String getAccessToken() {
 		return accessToken;

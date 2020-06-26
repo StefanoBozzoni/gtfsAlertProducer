@@ -1,0 +1,40 @@
+spring:
+  devtools:
+    livereload:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: schematest
+        
+  datasource:
+    url: jdbc:postgresql://172.16.0.113:5432/italert
+    username: postgres
+    password: '@vjtech@'
+
+#application properties setup
+app:
+  message_api_url: https://coll-aru-24sender.app24pa.it/rest/
+  operator_username: damiano
+  operator_password: Damiano123
+  
+#https://coll-extapi.whereapp.it/
+
+#spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.PostgreSQLDialect
+#spring.jpa.hibernate.ddl-auto=none
+#spring.jpa.show-sql=true
+#spring.datasource.url=jdbc:postgresql://172.16.0.113:5432/italert
+#spring.datasource.username=postgres
+#spring.datasource.password=@vjtech@
+#spring.jpa.properties.hibernate.default_schema=schematest
+
+
+#spring.datasource.initialization-mode=always
+#spring.datasource.initialize=true
+#spring.datasource.schema=classpath:/schema.sql
+#spring.datasource.continue-on-error=true
+
+#application properties setup
+#app.message_api_url = https://coll-extapi.whereapp.it/

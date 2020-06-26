@@ -18,7 +18,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 @Service
 public class GtfsService {
 
-	private IAccountService service;
+	private IGtfsService service;
 
 	public GtfsService(AuthorizationTokenInterceptor authIntercept, @Value("${app.message_api_url}")  String API_BASE_URL) {
 
@@ -29,7 +29,7 @@ public class GtfsService {
 		Retrofit retrofit = new Retrofit.Builder().baseUrl(API_BASE_URL).client(okHttpClient)
 				.addConverterFactory(GsonConverterFactory.create()).build();
 
-		service = retrofit.create(IAccountService.class);
+		service = retrofit.create(IGtfsService.class);
 	}
 	
 	public JobZoneResponse createJobZone(JobZoneRequest zonerequest) throws IOException {

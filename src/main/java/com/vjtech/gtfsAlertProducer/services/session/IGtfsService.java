@@ -9,11 +9,17 @@ import retrofit2.http.POST;
 import com.vjtech.gtfsAlertProducer.services.JobZoneResponse;
 import com.vjtech.gtfsAlertProducer.services.model.AccessTokenResponse;
 import com.vjtech.gtfsAlertProducer.services.model.JobZoneRequest;
+import com.vjtech.gtfsAlertProducer.services.model.PostMessageByAreaRequest;
 
-public interface IAccountService {
+public interface IGtfsService {
 	
 	@POST("v1/createJobZone")
 	Call<JobZoneResponse> createJobZone(@Body JobZoneRequest zonerequest);
+
+	
+	@POST("v4/uop/messages/byarea")
+	Call<JobZoneResponse> postMessageByArea(@Body PostMessageByAreaRequest byAreaRequest);
+	
 
 	/*
     @DELETE("repos/{owner}/{repo}")

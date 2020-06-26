@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,7 +21,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,8 +48,12 @@ import com.google.gson.annotations.SerializedName;
 import com.google.transit.realtime.GtfsRealtime.Alert;
 import com.google.transit.realtime.GtfsRealtime.FeedEntity;
 import com.google.transit.realtime.GtfsRealtime.FeedMessage;
+import com.vjtech.gtfsAlertProducer.Utils.UnzipFiles;
 import com.vjtech.gtfsAlertProducer.database.model.Agency;
+import com.vjtech.gtfsAlertProducer.database.model.Points;
 import com.vjtech.gtfsAlertProducer.repository.AgencyRepository;
+import com.vjtech.gtfsAlertProducer.repository.RoutesRepository;
+import com.vjtech.gtfsAlertProducer.repository.ZetaRouteRepository;
 import com.vjtech.gtfsAlertProducer.services.JobZoneResponse;
 import com.vjtech.gtfsAlertProducer.services.model.AccessTokenResponse;
 import com.vjtech.gtfsAlertProducer.services.model.JobZoneRequest;
@@ -56,7 +66,11 @@ import com.vjtech.gtfsAlertProducer.services.session.SessionService;
 public class GtfsAlertProducerApplication {
 
 	private static final Logger log = LoggerFactory.getLogger(GtfsAlertProducerApplication.class);
-	
+
+	private static final int CONNECT_TIMEOUT = 3000;
+
+	private static final int READ_TIMEOUT = 3000;
+
 	@Value("https://romamobilita.it/sites/default/files/rome_rtgtfs_service_alerts_feed.pb")
 	String Alert_url_address;
 
@@ -75,7 +89,11 @@ public class GtfsAlertProducerApplication {
 	private GtfsService gtfsService;
 
 	@Autowired
-	AgencyRepository agencyRepository;
+	RoutesRepository routesRepository;
+	
+	@Autowired
+	ZetaRouteRepository zetaRoutesRepository;
+	
 
 	@Autowired
 	SessionInMemoryDatasource sessionDataSource;
@@ -103,16 +121,17 @@ public class GtfsAlertProducerApplication {
 			log.info(tokenResponse.accessToken);
 			log.info("***************************************");
 
-			List<Agency> agencyList = agencyRepository.findAll();
+			/*
+			List<Agency> agencyList = routesRepository.findAll();
 			agencyList.forEach((Agency el) -> {
 				log.info(el.toString());
 			});
+			*/
 
 			/*
 			 * Date date = new Date(); LocalDate ld = date.toInstant()
 			 * .atZone(ZoneId.systemDefault()) .toLocalDate();
 			 */
-
 
 			/*
 			 * extracting points from database List<Object[]> points_list =
@@ -130,28 +149,55 @@ public class GtfsAlertProducerApplication {
 	@Bean
 	ScheduledFuture<?> startBackGroundThread() {
 		ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-		ScheduledFuture<?> task = scheduledExecutorService.scheduleAtFixedRate(() -> MyTaskToRun(), 0, 30,
+		ScheduledFuture<?> task = scheduledExecutorService.scheduleAtFixedRate(() -> checkRemoteFileUpdates(), 0, 30,
 				TimeUnit.SECONDS);
 		return task;
 	}
-	
+
+	private List<Points> getGeoPoints() { 
+	  
+	  List<Object[]> object_list = routesRepository.findPointsByRouteId(249);
+	  //List<Points> points_list = new ArrayList<Points>();
+	  
+	  
+	   List<Points> points_list = object_list.stream().map( 
+			 (Object[] el) -> {
+				 	BigDecimal lat = new BigDecimal(el[0].toString()); 
+				 	BigDecimal lon = new BigDecimal(el[1].toString()); 
+				 	return new Points(lon, lat);
+			 }).collect(Collectors.toList());
+	  
+	  /*
+	  object_list.forEach(
+			  (Object obj)-> { Object[] arr = (Object[]) obj; 
+			  					BigDecimal lat = new BigDecimal(arr[0].toString()); 
+			  					BigDecimal lon = new BigDecimal(arr[1].toString()); 
+			  					log.info(lat.toString());
+			  					log.info(lon.toString());
+			  					Points p = new Points(lon,lat);
+			  					points_list.add(p);
+			  				 }
+	  );
+	  */
+			 
+	  points_list.forEach( (Points p) -> log.info(p.getLongitude().toString() ) ); 		 
+	  
+	  return points_list;
+	}
 
 	void InvioMessagioFromAlert(Alert alert) throws IOException {
-		
+
 		long timeStampStart = alert.getActivePeriod(0).getStart();
-		long timeStampEnd = alert.getActivePeriod(0).getEnd();		
-		
+		long timeStampEnd = alert.getActivePeriod(0).getEnd();
+
 		/*
-		timeStampStart.toInstant()
-        .atZone(ZoneId.of("UTC"))
-        .toLocalDate();
-        */
-		
-		DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-				Locale.ENGLISH);
+		 * timeStampStart.toInstant() .atZone(ZoneId.of("UTC")) .toLocalDate();
+		 */
+
+		DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH);
 		String formattedDateStart = outputFormatter.format(new Timestamp(timeStampStart).toLocalDateTime());
 		String formattedDateEnd = outputFormatter.format(new Timestamp(timeStampEnd).toLocalDateTime());
-		
+
 		@SuppressWarnings("serial")
 		JobZoneRequest zoneRequest = new JobZoneRequest() {
 			{
@@ -170,35 +216,100 @@ public class GtfsAlertProducerApplication {
 
 		JobZoneResponse jzr = gtfsService.createJobZone(zoneRequest);
 		log.info("************STATUS:");
-		log.info(jzr.status);		
+		log.info(jzr.status);
 	}
 
-	void MyTaskToRun() {
+	void checkRemoteFileUpdates() {
 
 		try {
-			//Read the new alert file and cycle over the messages...
-			
-			log.info("sono schedulato...");
-			URL url = new URL(Alert_url_address);
-			FeedMessage feed = FeedMessage.parseFrom(url.openStream());
-			Alert alert;
-			for (FeedEntity entity : feed.getEntityList()) {
-				log.info(entity.getTripUpdate().toString());
-				alert = entity.getAlert();
-				if (!entity.getIsDeleted()) {
-					log.info(new Date(alert.getActivePeriod(0).getStart()).toString());
-					log.info(new Date(alert.getActivePeriod(0).getEnd()).toString());
-					log.info(alert.getInformedEntity(0).getRouteId().toString());
-					log.info(HtmlEscape.unescapeHtml(alert.getHeaderText().getTranslation(0).getText()));
-					log.info(HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText()));
-					log.info(alert.getInformedEntity(0).getRouteId());
-					log.info("--------------");
-				}
+			// Read the new alert file and cycle over the messages...
+			// scarica il file
+			FileUtils.copyURLToFile(new URL("https://romamobilita.it/sites/default/files/rome_static_gtfs.zip.md5"),
+					new File("c:/temp/rome_static_gtfs.txt"), CONNECT_TIMEOUT, READ_TIMEOUT);
+
+			String md5CheckSum = "";
+			try {
+				md5CheckSum = new String(Files.readAllBytes(Paths.get("c:/temp/rome_static_gtfs.txt")));
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
+			log.info("***************");
+			log.info(md5CheckSum);
+
+			if (!md5CheckSum.equals(sessionDataSource.getMd5Checksum())) {
+				log.info("download Files");
+				sessionDataSource.setMd5Checksum(md5CheckSum);
+				downloadFiles();
+				createNewAreas();
+
+				// sendMessagesToWhereApp
+			}
+
 		} catch (Exception e) {
 			log.info(e.getMessage());
 		}
 
+	}
+
+	private void downloadFiles() throws IOException {
+		FileUtils.copyURLToFile(new URL("https://romamobilita.it/sites/default/files/rome_static_gtfs.zip"),
+				new File("c:/temp/rome_static_gtfs.zip"), CONNECT_TIMEOUT, READ_TIMEOUT);
+		UnzipFiles.unzip("c:/temp/rome_static_gtfs.zip", "c:/temp/prova");
+	}
+
+	private String getAreaAsString() throws IOException {
+		
+		List<String> listPoints = getGeoPoints().stream().map( (Points el) -> el.getLongitude()+" "+el.getLatitude()).collect(Collectors.toList());
+		String points_str = Strings.join(listPoints, ',');
+		log.info(points_str);
+		//select st_buffer(st_geographyfromtext('LINESTRING(13 42, 13.1 42.1, 13.2  42.6)'), 100, 'endcap=round join=round') ;
+		return "LINESTRING("+points_str+")";
+	}
+
+	private void createNewAreas() throws IOException {
+		
+		List<String> listPoints = getGeoPoints().stream().map( (Points el) -> el.getLongitude()+" "+el.getLatitude()).collect(Collectors.toList());
+		String points_list_str = Strings.join(listPoints, ',');
+		log.info(points_list_str);
+		
+		String s = getAreaAsString();
+		
+		zetaRoutesRepository.insertRoute(249, "prova", );
+		
+		//Scrivere S nella tabella 
+		/*
+		URL url = new URL(Alert_url_address);
+		FeedMessage feed = FeedMessage.parseFrom(url.openStream());
+		Alert alert;
+		for (FeedEntity entity : feed.getEntityList()) {
+			log.info(entity.getTripUpdate().toString());
+			alert = entity.getAlert();
+			if (!entity.getIsDeleted()) {
+				String routeId = alert.getInformedEntity(0).getRouteId();
+
+			}
+		}
+		*/
+	}
+
+	private void sendMessagesToWhereApp() throws IOException {
+		log.info("sono schedulato...");
+		URL url = new URL(Alert_url_address);
+		FeedMessage feed = FeedMessage.parseFrom(url.openStream());
+		Alert alert;
+		for (FeedEntity entity : feed.getEntityList()) {
+			log.info(entity.getTripUpdate().toString());
+			alert = entity.getAlert();
+			if (!entity.getIsDeleted()) {
+				log.info(new Date(alert.getActivePeriod(0).getStart()).toString());
+				log.info(new Date(alert.getActivePeriod(0).getEnd()).toString());
+				log.info(alert.getInformedEntity(0).getRouteId().toString());
+				log.info(HtmlEscape.unescapeHtml(alert.getHeaderText().getTranslation(0).getText()));
+				log.info(HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText()));
+				log.info(alert.getInformedEntity(0).getRouteId());
+				log.info("--------------");
+			}
+		}
 	}
 
 	// @EnableScheduling
