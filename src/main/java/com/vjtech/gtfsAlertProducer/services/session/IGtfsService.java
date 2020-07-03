@@ -1,15 +1,15 @@
 package com.vjtech.gtfsAlertProducer.services.session;
 
-import retrofit2.Call;
-import retrofit2.http.Body;
-import retrofit2.http.Field;
-import retrofit2.http.FormUrlEncoded;
-import retrofit2.http.POST;
-
 import com.vjtech.gtfsAlertProducer.services.JobZoneResponse;
-import com.vjtech.gtfsAlertProducer.services.model.AccessTokenResponse;
+import com.vjtech.gtfsAlertProducer.services.model.CreateAreaRequest;
+import com.vjtech.gtfsAlertProducer.services.model.CreateAreaResponse;
 import com.vjtech.gtfsAlertProducer.services.model.JobZoneRequest;
 import com.vjtech.gtfsAlertProducer.services.model.PostMessageByAreaRequest;
+import com.vjtech.gtfsAlertProducer.services.model.PostMessageByAreaResponse;
+
+import retrofit2.Call;
+import retrofit2.http.Body;
+import retrofit2.http.POST;
 
 public interface IGtfsService {
 	
@@ -18,9 +18,11 @@ public interface IGtfsService {
 
 	
 	@POST("v4/uop/messages/byarea")
-	Call<JobZoneResponse> postMessageByArea(@Body PostMessageByAreaRequest byAreaRequest);
+	Call<PostMessageByAreaResponse> postMessageByArea(@Body PostMessageByAreaRequest byAreaRequest);
+		
+	@POST("v4/aop/areas")
+	Call<CreateAreaResponse> createAreaAsText(@Body CreateAreaRequest areaRequest);
 	
-
 	/*
     @DELETE("repos/{owner}/{repo}")
     Call<DeletePayload> deleteRepo(@Header("Authorization") String accessToken, @Header("Accept") String apiVersionSpec,

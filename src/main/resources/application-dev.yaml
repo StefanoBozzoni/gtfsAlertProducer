@@ -1,24 +1,38 @@
 spring:
-  devtools:
-    livereload:
-      enabled: true
   jpa:
+  #devtools:
+  #  livereload:
+  #    enabled: true
     hibernate:
-      ddl-auto: none
+       ddl-auto: none
     properties:
       hibernate:
         default_schema: schematest
-        
+        dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
+    show-sql: true
+    open-in-view: false
+    database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect                      
   datasource:
     url: jdbc:postgresql://172.16.0.113:5432/italert
     username: postgres
     password: '@vjtech@'
 
+#logging:
+#  level:
+#    org:
+#      hibernate:
+#        SQL: DEBUG
+#        type:
+#          descriptor:
+#            sql:
+#              BasicBinder: TRACE
+              
 #application properties setup
 app:
-  message_api_url: https://coll-aru-24sender.app24pa.it/rest/
+  message_api_url: http://172.16.0.113:9081/itwa/be-messages/
   operator_username: damiano
   operator_password: Damiano123
+  sender_id: 2
   
 #https://coll-extapi.whereapp.it/
 

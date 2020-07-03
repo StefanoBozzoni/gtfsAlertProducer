@@ -1,15 +1,5 @@
 package com.vjtech.gtfsAlertProducer.database.model;
 
-import java.io.Serializable;
-
-import javax.persistence.Basic;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
-
-import lombok.Data;
-
 /*
 @Entity
 @Table(name="stop_times")
