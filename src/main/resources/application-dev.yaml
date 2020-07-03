@@ -11,11 +11,11 @@ spring:
         dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
     show-sql: true
     open-in-view: false
-    database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect                      
+    database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect
   datasource:
     url: jdbc:postgresql://172.16.0.113:5432/italert
     username: postgres
-    password: '@vjtech@'
+    password: '@vjtech@'  
 
 #logging:
 #  level:
@@ -29,7 +29,8 @@ spring:
               
 #application properties setup
 app:
-  message_api_url: http://172.16.0.113:9081/itwa/be-messages/
+  #message_api_url: http://172.16.0.113:9081/itwa/be-messages/
+  message_api_url: https://coll-aru-24sender.app24pa.it/rest/
   operator_username: damiano
   operator_password: Damiano123
   sender_id: 2

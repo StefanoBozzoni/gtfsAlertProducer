@@ -90,8 +90,8 @@ public class GtfsAlertProducerApplication {
 	@Value("https://romamobilita.it/sites/default/files/rome_rtgtfs_service_alerts_feed.pb")
 	String Alert_url_address;
 
-	@Autowired
-	ScheduledFuture<?> myschedultedTask;
+	//@Autowired
+	//ScheduledFuture<?> mainTaskScheduler;
 
 	public static void main(String[] args) {
 		log.info("Starting");
@@ -120,37 +120,37 @@ public class GtfsAlertProducerApplication {
 	public CommandLineRunner demo(AccessTokenResponse tokenResponse) {
 
 		return (args) -> {
-			log.info("Inizio demo");
+			log.info("Avvio scheduler...");
 
-			getJson("agency.csv");
-			getJson("routes.csv");
-			
-			displayAlertsDates();
+			//getJson("agency.csv");
+			//getJson("routes.csv");			
+			//displayAlertsDates();
 
 			sessionDataSource.setAccessToken(tokenResponse.accessToken);
 			sessionDataSource.setRefreshToken(tokenResponse.refreshToken);
+			sessionDataSource.setTaskScheduler(startBackGroundThread());
 
 			log.info("************ ACCESS TOKEN *************");
 			log.info(tokenResponse.accessToken);
 			log.info("***************************************");
 
-			log.info("Fine demo");
+			//mainTaskScheduler.notify();
+			log.info("Scheduler avviato");
+			
 		};
 	}
 
-	@Bean
-	ScheduledFuture<?> startBackGroundThread() {
+	//@Bean
+	ScheduledFuture<?> startBackGroundThread() throws InterruptedException {
 		ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-		ScheduledFuture<?> task = scheduledExecutorService.scheduleAtFixedRate(() -> checkRemoteFileUpdates(), 0, 30,
-				TimeUnit.SECONDS);
+		ScheduledFuture<?> task = scheduledExecutorService.scheduleAtFixedRate(() -> checkRemoteFileUpdates(), 0, 30, TimeUnit.SECONDS);     
+		//task.wait();
 		return task;
 	}
 
-	private List<Points> getGeoPoints(long IdRoute) { 
-	  
-	  List<Object[]> object_list = routesRepository.findPointsByRouteId2(IdRoute);	  
-	  
-	   List<Points> points_list = object_list.stream().map( 
+	private List<Points> getGeoPoints(long IdRoute) { 	  
+	  List<Object[]> object_list = routesRepository.findPointsByRouteId2(IdRoute);	  	  
+	  List<Points> points_list = object_list.stream().map( 
 			 (Object[] el) -> {
 				 	BigDecimal lat = new BigDecimal(el[0].toString()); 
 				 	BigDecimal lon = new BigDecimal(el[1].toString()); 
@@ -268,6 +268,7 @@ public class GtfsAlertProducerApplication {
 		//preleva la descrizione della route
 		Optional<Routes> foundRoute = routesRepository.findById(currIdRoute);
 		if (!foundRoute.isPresent()) return;  //TODO: da modificare
+		
 		Routes currRoute = foundRoute.get();
 		String currRouteShortName= currRoute.getRouteShortName();
 		

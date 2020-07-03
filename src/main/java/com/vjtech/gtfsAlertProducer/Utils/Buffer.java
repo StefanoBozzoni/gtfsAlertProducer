@@ -76,7 +76,6 @@ public class Buffer {
 		pGeom = JTS.transform(geom, toTransform);
 	    } catch (MismatchedDimensionException | TransformException
 		    | FactoryException e) {
-		// TODO Auto-generated catch block
 		e.printStackTrace();
 	    }
 
@@ -90,7 +89,6 @@ public class Buffer {
 	    try {
 		retGeom = JTS.transform(out, fromTransform);
 	    } catch (MismatchedDimensionException | TransformException e) {
-		// TODO Auto-generated catch block
 		e.printStackTrace();
 	    }
 	}

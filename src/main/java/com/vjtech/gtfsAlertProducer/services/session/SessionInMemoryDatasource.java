@@ -1,5 +1,7 @@
 package com.vjtech.gtfsAlertProducer.services.session;
 
+import java.util.concurrent.ScheduledFuture;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -8,6 +10,16 @@ public class SessionInMemoryDatasource {
 	String accessToken  = "";
 	String refreshToken = "";
 	String md5Checksum  = "";
+	
+	ScheduledFuture<?> taskScheduler;
+
+	public ScheduledFuture<?> getTaskScheduler() {
+		return taskScheduler;
+	}
+
+	public void setTaskScheduler(ScheduledFuture<?> taskScheduler) {
+		this.taskScheduler = taskScheduler;
+	}
 
 	public String getMd5Checksum() {
 		return md5Checksum;

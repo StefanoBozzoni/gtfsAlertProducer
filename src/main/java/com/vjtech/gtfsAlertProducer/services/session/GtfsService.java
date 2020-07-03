@@ -1,9 +1,12 @@
 package com.vjtech.gtfsAlertProducer.services.session;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.geolatte.geom.jts.JTSConversionException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import com.google.gson.Gson;
@@ -28,14 +31,19 @@ public class GtfsService {
 
 	private IGtfsService service;
 
-	public GtfsService(AuthorizationTokenInterceptor authIntercept, @Value("${app.message_api_url}")  String API_BASE_URL) {
+	public GtfsService(AuthorizationTokenInterceptor authIntercept, @Value("${app.message_api_url}")  String API_BASE_URL, Environment environment) {
 		
 		HttpLoggingInterceptor logging = new HttpLoggingInterceptor();  
 		logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-		OkHttpClient okHttpClient = new OkHttpClient.Builder()
+		OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+		//add log http in dev env
+		if (Arrays.stream(environment.getActiveProfiles()).anyMatch(env -> env.equalsIgnoreCase("dev"))) {
+			okHttpClientBuilder.addInterceptor(logging);
+		} 
+		
+		OkHttpClient okHttpClient = okHttpClientBuilder
 				.addInterceptor(authIntercept)
-				.addInterceptor(logging)
 				.build();
 			
 		Gson gson = new GsonBuilder()
