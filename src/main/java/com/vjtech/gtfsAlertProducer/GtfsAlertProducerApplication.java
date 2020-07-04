@@ -98,7 +98,6 @@ public class GtfsAlertProducerApplication {
 		SpringApplication.run(GtfsAlertProducerApplication.class, args);
 	}
 
-
 	@Autowired
 	private GtfsService gtfsService;
 	
@@ -244,85 +243,87 @@ public class GtfsAlertProducerApplication {
 		
 		URL url = new URL(Alert_url_address);
 		FeedMessage feed = FeedMessage.parseFrom(url.openStream());		
+
 		//for (FeedEntity entity : feed.getEntityList()) {
-
-		FeedEntity entity = feed.getEntityList().get(0);
-		Alert alert = entity.getAlert();
-		
-		//recupero informazioni alert e route
-		
-		long timeStampStart = alert.getActivePeriod(0).getStart();
-		long timeStampEnd = alert.getActivePeriod(0).getEnd();
-
-		String startMsgDate = getDateStringFromPosixTimeStamp(timeStampStart);
-		String endMsgDate = getDateStringFromPosixTimeStamp(timeStampEnd);
-		
-		String messageTitle = HtmlEscape.unescapeHtml(alert.getHeaderText().getTranslation(0).getText());
-		String messageBody =  HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText());
-		
-		log.info(messageTitle);
-		log.info(messageBody);
-		
-		Integer currIdRoute   = Integer.parseInt(alert.getInformedEntity(0).getRouteId());
-		
-		//preleva la descrizione della route
-		Optional<Routes> foundRoute = routesRepository.findById(currIdRoute);
-		if (!foundRoute.isPresent()) return;  //TODO: da modificare
-		
-		Routes currRoute = foundRoute.get();
-		String currRouteShortName= currRoute.getRouteShortName();
-		
-		String areaStr = getAreaAsString(currIdRoute);
-		GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-		WKTReader reader = new WKTReader( geometryFactory );
-
-		LineString line=null;
-		Geometry bufferLine=null;
-		try {
-			line = (LineString) reader.read(areaStr);
-			bufferLine = line.buffer(0.002);
-		}
-		catch (org.locationtech.jts.io.ParseException p) {
-			log.info("parse exception");			
-		}
-		
-		ZetaRoute zr = gtfsRepository.findZetaRouteByIdroute(currIdRoute);				
-		if (zr==null || (zr!=null && zr.getIdarea()==null)) {	
-			log.info(bufferLine.toText());
-			@SuppressWarnings("serial")
-			CreateAreaRequest areaRequest = new CreateAreaRequest() {
-				{				
-					senderId = 2;
-					areaName = currRouteShortName;
-				}
-			};			
-			areaRequest.textArea= bufferLine.toText();
-			if (zr!=null) areaRequest.areaId= zr.getIdarea();
+		for (int i=0; i<feed.getEntityCount();i++) {
 			
-			//Il servizio seguente inserisce l'area se areaRequest.areaId é null altrimenti restituisce l'area associata all'idRoute Inviata 
- 		    CreateAreaResponse response= gtfsService.createAreaAstext(areaRequest); 
- 		     
-			//Inserisce o aggiorna su DB (tabella zeta_route) l'area,  l'IdRoute e la descrizione della Route
-			if (zr==null) //se non c'era il record lo inserisco
-			    gtfsRepository.insertNewArea(currIdRoute, bufferLine, "Linea: "+currRouteShortName, response.areaId);
-			else {  //...altrimenti aggiorno
-				gtfsRepository.updateArea(zr, bufferLine, "Linea: "+currRouteShortName, response.areaId);
-			}
+			FeedEntity entity = feed.getEntityList().get(i);
+			Alert alert = entity.getAlert();
+			
+			//recupero informazioni alert e route
+			long timeStampStart = alert.getActivePeriod(0).getStart();
+			long timeStampEnd   = alert.getActivePeriod(0).getEnd();
+	
+			String startMsgDate = getDateStringFromPosixTimeStamp(timeStampStart);
+			String endMsgDate   = getDateStringFromPosixTimeStamp(timeStampEnd);
+			
+			String messageTitle = HtmlEscape.unescapeHtml(alert.getHeaderText().getTranslation(0).getText());
+			String messageBody  =  HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText());
+			
+			log.info(messageTitle);
+			log.info(messageBody);
+			
+			for (int j=0; j<alert.getInformedEntityCount(); j++) {
+				
+				Integer currIdRoute   = Integer.parseInt(alert.getInformedEntity(j).getRouteId());
+				
+				//preleva la descrizione della route
+				Optional<Routes> foundRoute = routesRepository.findById(currIdRoute);
+				if (!foundRoute.isPresent()) return;  //TODO: da modificare
+				
+				Routes currRoute = foundRoute.get();
+				String currRouteShortName= currRoute.getRouteShortName();
+				
+				String areaStr = getAreaAsString(currIdRoute);
+				GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+				WKTReader reader = new WKTReader( geometryFactory );
 		
-			//Invio il servizio di notifica di whereapp
-			PostMessageByAreaRequest messageRequest = new PostMessageByAreaRequest();
-			messageRequest.setStartDate(startMsgDate);
-			messageRequest.setEndDate(endMsgDate);
-			messageRequest.setSenderId(senderId);
-			messageRequest.setLanguage("IT");
-			messageRequest.setCategoryCode("CTG21");
-			messageRequest.setSubject(messageTitle);
-			messageRequest.setBody(messageBody);
-			messageRequest.setMultiArea(false);
-			messageRequest.setAreaIds(new ArrayList<Integer>(Arrays.asList(response.areaId)));
-			PostMessageByAreaResponse responsePost = gtfsService.postMessageByArea(messageRequest);
-			log.info("Messaggio inviato"+responsePost.toString());
-		}
+				LineString line=null;
+				Geometry bufferLine=null;
+				
+				try {
+					line = (LineString) reader.read(areaStr);
+					bufferLine = line.buffer(0.002);
+				}
+				catch (org.locationtech.jts.io.ParseException p) {
+					log.info("parse exception");			
+				}
+				
+				ZetaRoute zr = gtfsRepository.findZetaRouteByIdroute(currIdRoute);
+				
+				if (zr==null || (zr!=null && zr.getIdarea()==null)) {	
+					log.info(bufferLine.toText());
+					@SuppressWarnings("serial")
+					CreateAreaRequest areaRequest = new CreateAreaRequest() {
+						{				
+							senderId = 2;
+							areaName = currRouteShortName;
+						}
+					};			
+				
+					areaRequest.textArea= bufferLine.toText();
+					if (zr!=null) areaRequest.areaId= zr.getIdarea();
+					
+					//Il servizio seguente inserisce l'area se areaRequest.areaId é null altrimenti restituisce l'area associata all'idRoute Inviata 
+		 		    CreateAreaResponse response= gtfsService.createAreaAstext(areaRequest); 
+		 		     
+					//Inserisce o aggiorna su DB (tabella zeta_route) l'area,  l'IdRoute e la descrizione della Route
+					if (zr==null) //se non c'era il record lo inserisco
+					    gtfsRepository.insertNewArea(currIdRoute, bufferLine, "Linea: "+currRouteShortName, response.areaId);
+					else {  //...altrimenti aggiorno
+						gtfsRepository.updateArea(zr, bufferLine, "Linea: "+currRouteShortName, response.areaId);
+					}
+					
+					sendMessagesToNewWhereApp(startMsgDate,endMsgDate, messageTitle, messageBody);
+				
+				}
+				break; //TODO: to remove, just for test
+				
+			} //for (int j=0...
+			
+			break; //TODO: to remove, just for test
+			
+		} //for (int i=0...
 		
 		//zetaRoutesRepository.insertRoute(249, "prova", line );
 	}
@@ -362,7 +363,24 @@ public class GtfsAlertProducerApplication {
 		String formattedDate = outputFormatter.format(new Timestamp(timeStamp*1000L).toLocalDateTime());
 		return formattedDate;
 	}
-
+	
+	private void sendMessagesToNewWhereApp(String startDate,String endDate, String title, String body) throws IOException {
+		//Invio il servizio di notifica di whereapp
+		PostMessageByAreaRequest messageRequest = new PostMessageByAreaRequest();
+		messageRequest.setStartDate(startDate);
+		messageRequest.setEndDate(endDate);
+		messageRequest.setSenderId(senderId);
+		messageRequest.setLanguage("IT");
+		messageRequest.setCategoryCode("CTG21");  // Trasporto pubblico
+		messageRequest.setSubject(title);
+		messageRequest.setBody(body);
+		messageRequest.setMultiArea(false);
+		messageRequest.setAreaIds(new ArrayList<Integer>(Arrays.asList(response.areaId)));
+		PostMessageByAreaResponse responsePost = gtfsService.postMessageByArea(messageRequest);
+		log.info("Messaggio inviato"+responsePost.toString());	
+	}
+	
+	@Deprecated
 	private void sendMessagesToWhereApp() throws IOException {
 		log.info("sono schedulato...");
 		URL url = new URL(Alert_url_address);
@@ -398,6 +416,7 @@ public class GtfsAlertProducerApplication {
 	 * task.cancel(true);
 	 */
 
+	//TODO: the following method will be useful to import csv files into tables
 	public void getJson(String filename) throws Exception {
 		File input = new ClassPathResource(filename).getFile();
 		// File input = new File("./src/main/resources/agency.csv");

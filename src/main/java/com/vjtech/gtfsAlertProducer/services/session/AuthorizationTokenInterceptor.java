@@ -2,12 +2,9 @@ package com.vjtech.gtfsAlertProducer.services.session;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 import com.vjtech.gtfsAlertProducer.services.model.AccessTokenResponse;
-
 import lombok.NonNull;
 import okhttp3.Interceptor;
 import okhttp3.Request;

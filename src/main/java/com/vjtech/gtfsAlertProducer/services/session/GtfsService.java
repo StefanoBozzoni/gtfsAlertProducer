@@ -3,14 +3,10 @@ package com.vjtech.gtfsAlertProducer.services.session;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.geolatte.geom.jts.JTSConversionException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.vjtech.gtfsAlertProducer.services.JobZoneResponse;
 import com.vjtech.gtfsAlertProducer.services.model.CreateAreaRequest;
 import com.vjtech.gtfsAlertProducer.services.model.CreateAreaResponse;
@@ -37,6 +33,7 @@ public class GtfsService {
 		logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
 		OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+
 		//add log http in dev env
 		if (Arrays.stream(environment.getActiveProfiles()).anyMatch(env -> env.equalsIgnoreCase("dev"))) {
 			okHttpClientBuilder.addInterceptor(logging);
@@ -46,20 +43,21 @@ public class GtfsService {
 				.addInterceptor(authIntercept)
 				.build();
 			
-		Gson gson = new GsonBuilder()
-				.serializeSpecialFloatingPointValues() 
-				.serializeNulls()
-				.setLenient()
-				.create();
+		//Gson gson = new GsonBuilder()
+		//		.serializeSpecialFloatingPointValues() 
+		//		.serializeNulls()
+		//		.setLenient()
+		//		.create();
 		
 		Retrofit retrofit = new Retrofit.Builder().
 				baseUrl(API_BASE_URL).client(okHttpClient)
 				.addConverterFactory(JacksonConverterFactory.create())
-				.addConverterFactory(GsonConverterFactory.create(gson)).build();
+				.addConverterFactory(GsonConverterFactory.create()).build();
 
 		service = retrofit.create(IGtfsService.class);
 	}
 	
+	@Deprecated
 	public JobZoneResponse createJobZone(JobZoneRequest zonerequest) throws IOException {
 		
 		Call<JobZoneResponse> retrofitCall = service.createJobZone(zonerequest);
@@ -77,7 +75,7 @@ public class GtfsService {
 		Call<CreateAreaResponse> retrofitCall = service.createAreaAsText(areaRequest);		
 		Response<CreateAreaResponse> response = retrofitCall.execute();		
 		if (!response.isSuccessful()) {
-			throw new IOException(response.errorBody() != null ? response.errorBody().string() : "Unknown error");
+			throw new IOException(response.errorBody() != null ? response.errorBody().string() : "Unknown error, call to api Areas service failed ");
 		}		
 		return response.body();
 		
@@ -89,7 +87,7 @@ public class GtfsService {
 		
 		Response<PostMessageByAreaResponse> response = retrofitCall.execute();		
 		if (!response.isSuccessful()) {
-			throw new IOException(response.errorBody() != null ? response.errorBody().string() : "Unknown error");
+			throw new IOException(response.errorBody() != null ? response.errorBody().string() : "Unknown error, call to api post message failed");
 		}		
 		return response.body();
 		

@@ -13,9 +13,9 @@ import retrofit2.http.POST;
 
 public interface IGtfsService {
 	
+	@Deprecated
 	@POST("v1/createJobZone")
 	Call<JobZoneResponse> createJobZone(@Body JobZoneRequest zonerequest);
-
 	
 	@POST("v4/uop/messages/byarea")
 	Call<PostMessageByAreaResponse> postMessageByArea(@Body PostMessageByAreaRequest byAreaRequest);
@@ -28,7 +28,6 @@ public interface IGtfsService {
     Call<DeletePayload> deleteRepo(@Header("Authorization") String accessToken, @Header("Accept") String apiVersionSpec,
                                    @Path("repo") String repo, @Path("owner") String owner);
     */
-
 	/*
     @POST("user/repos")
     Call<Repository> createRepo(@Body Repository repo, @Header("Authorization") String accessToken,
