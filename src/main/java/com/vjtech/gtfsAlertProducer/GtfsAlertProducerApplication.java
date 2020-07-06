@@ -90,8 +90,8 @@ public class GtfsAlertProducerApplication {
 	@Value("https://romamobilita.it/sites/default/files/rome_rtgtfs_service_alerts_feed.pb")
 	String Alert_url_address;
 
-	//@Autowired
-	//ScheduledFuture<?> mainTaskScheduler;
+	// @Autowired
+	// ScheduledFuture<?> mainTaskScheduler;
 
 	public static void main(String[] args) {
 		log.info("Starting");
@@ -100,13 +100,13 @@ public class GtfsAlertProducerApplication {
 
 	@Autowired
 	private GtfsService gtfsService;
-	
+
 	@Autowired
 	private GtfsRepository gtfsRepository;
 
 	@Autowired
 	RoutesRepository routesRepository;
-	
+
 	@Autowired
 	SessionInMemoryDatasource sessionDataSource;
 
@@ -121,9 +121,9 @@ public class GtfsAlertProducerApplication {
 		return (args) -> {
 			log.info("Avvio scheduler...");
 
-			//getJson("agency.csv");
-			//getJson("routes.csv");			
-			//displayAlertsDates();
+			// getJson("agency.csv");
+			// getJson("routes.csv");
+			// displayAlertsDates();
 
 			sessionDataSource.setAccessToken(tokenResponse.accessToken);
 			sessionDataSource.setRefreshToken(tokenResponse.refreshToken);
@@ -133,30 +133,30 @@ public class GtfsAlertProducerApplication {
 			log.info(tokenResponse.accessToken);
 			log.info("***************************************");
 
-			//mainTaskScheduler.notify();
+			// mainTaskScheduler.notify();
 			log.info("Scheduler avviato");
-			
+
 		};
 	}
 
-	//@Bean
+	// @Bean
 	ScheduledFuture<?> startBackGroundThread() throws InterruptedException {
 		ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-		ScheduledFuture<?> task = scheduledExecutorService.scheduleAtFixedRate(() -> checkRemoteFileUpdates(), 0, 30, TimeUnit.SECONDS);     
-		//task.wait();
+		ScheduledFuture<?> task = scheduledExecutorService.scheduleAtFixedRate(() -> checkRemoteFileUpdates(), 0, 30,
+				TimeUnit.SECONDS);
+		// task.wait();
 		return task;
 	}
 
-	private List<Points> getGeoPoints(long IdRoute) { 	  
-	  List<Object[]> object_list = routesRepository.findPointsByRouteId2(IdRoute);	  	  
-	  List<Points> points_list = object_list.stream().map( 
-			 (Object[] el) -> {
-				 	BigDecimal lat = new BigDecimal(el[0].toString()); 
-				 	BigDecimal lon = new BigDecimal(el[1].toString()); 
-				 	return new Points(lon, lat);
-			 }).collect(Collectors.toList());
-	  		
-	  return points_list;
+	private List<Points> getGeoPoints(long IdRoute) {
+		List<Object[]> object_list = routesRepository.findPointsByRouteId2(IdRoute);
+		List<Points> points_list = object_list.stream().map((Object[] el) -> {
+			BigDecimal lat = new BigDecimal(el[0].toString());
+			BigDecimal lon = new BigDecimal(el[1].toString());
+			return new Points(lon, lat);
+		}).collect(Collectors.toList());
+
+		return points_list;
 	}
 
 	void InvioMessagioFromAlert(Alert alert) throws IOException {
@@ -227,107 +227,112 @@ public class GtfsAlertProducerApplication {
 	}
 
 	private String getAreaAsString(long idRoute) throws IOException {
-		
-		List<String> listPoints = getGeoPoints(idRoute).stream().map( (Points el) -> el.getLongitude()+" "+el.getLatitude()).collect(Collectors.toList());
+
+		List<String> listPoints = getGeoPoints(idRoute).stream()
+				.map((Points el) -> el.getLongitude() + " " + el.getLatitude()).collect(Collectors.toList());
 		String points_str = Strings.join(listPoints, ',');
 		log.info(points_str);
-		return "LINESTRING("+points_str+")";
+		return "LINESTRING(" + points_str + ")";
 	}
 
-	
-	@Value("${app.sender_id}") int senderId;
-	
-	private void createNewAreas() throws IOException {
-		
-		log.info("Inizio CreateArea");
-		
-		URL url = new URL(Alert_url_address);
-		FeedMessage feed = FeedMessage.parseFrom(url.openStream());		
+	@Value("${app.sender_id}")
+	int senderId;
 
-		//for (FeedEntity entity : feed.getEntityList()) {
-		for (int i=0; i<feed.getEntityCount();i++) {
-			
+	private void createNewAreas() throws IOException {
+
+		log.info("Inizio CreateArea");
+
+		URL url = new URL(Alert_url_address);
+		FeedMessage feed = FeedMessage.parseFrom(url.openStream());
+
+		// for (FeedEntity entity : feed.getEntityList()) {
+		for (int i = 0; i < feed.getEntityCount(); i++) {
+
 			FeedEntity entity = feed.getEntityList().get(i);
 			Alert alert = entity.getAlert();
-			
-			//recupero informazioni alert e route
+
+			// recupero informazioni alert e route
 			long timeStampStart = alert.getActivePeriod(0).getStart();
-			long timeStampEnd   = alert.getActivePeriod(0).getEnd();
-	
+			long timeStampEnd = alert.getActivePeriod(0).getEnd();
+
 			String startMsgDate = getDateStringFromPosixTimeStamp(timeStampStart);
-			String endMsgDate   = getDateStringFromPosixTimeStamp(timeStampEnd);
-			
+			String endMsgDate = getDateStringFromPosixTimeStamp(timeStampEnd);
+
 			String messageTitle = HtmlEscape.unescapeHtml(alert.getHeaderText().getTranslation(0).getText());
-			String messageBody  =  HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText());
-			
+			String messageBody = HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText());
+
 			log.info(messageTitle);
 			log.info(messageBody);
-			
-			for (int j=0; j<alert.getInformedEntityCount(); j++) {
-				
-				Integer currIdRoute   = Integer.parseInt(alert.getInformedEntity(j).getRouteId());
-				
-				//preleva la descrizione della route
+
+			for (int j = 0; j < alert.getInformedEntityCount(); j++) {
+
+				Integer currIdRoute = Integer.parseInt(alert.getInformedEntity(j).getRouteId());
+
+				// preleva la descrizione della route
 				Optional<Routes> foundRoute = routesRepository.findById(currIdRoute);
-				if (!foundRoute.isPresent()) return;  //TODO: da modificare
-				
+				if (!foundRoute.isPresent())
+					return; // TODO: da modificare
+
 				Routes currRoute = foundRoute.get();
-				String currRouteShortName= currRoute.getRouteShortName();
-				
+				String currRouteShortName = currRoute.getRouteShortName();
+
 				String areaStr = getAreaAsString(currIdRoute);
 				GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-				WKTReader reader = new WKTReader( geometryFactory );
-		
-				LineString line=null;
-				Geometry bufferLine=null;
-				
+				WKTReader reader = new WKTReader(geometryFactory);
+
+				LineString line = null;
+				Geometry bufferLine = null;
+
 				try {
 					line = (LineString) reader.read(areaStr);
 					bufferLine = line.buffer(0.002);
+				} catch (org.locationtech.jts.io.ParseException p) {
+					log.info("parse exception");
 				}
-				catch (org.locationtech.jts.io.ParseException p) {
-					log.info("parse exception");			
-				}
-				
+
 				ZetaRoute zr = gtfsRepository.findZetaRouteByIdroute(currIdRoute);
-				
-				if (zr==null || (zr!=null && zr.getIdarea()==null)) {	
+
+				if (zr == null || (zr != null && zr.getIdarea() == null)) {
 					log.info(bufferLine.toText());
 					@SuppressWarnings("serial")
 					CreateAreaRequest areaRequest = new CreateAreaRequest() {
-						{				
+						{
 							senderId = 2;
-							areaName = currRouteShortName;
+							areaName = currRouteShortName + " prova";
 						}
-					};			
-				
-					areaRequest.textArea= bufferLine.toText();
-					if (zr!=null) areaRequest.areaId= zr.getIdarea();
-					
-					//Il servizio seguente inserisce l'area se areaRequest.areaId é null altrimenti restituisce l'area associata all'idRoute Inviata 
-		 		    CreateAreaResponse response= gtfsService.createAreaAstext(areaRequest); 
-		 		     
-					//Inserisce o aggiorna su DB (tabella zeta_route) l'area,  l'IdRoute e la descrizione della Route
-					if (zr==null) //se non c'era il record lo inserisco
-					    gtfsRepository.insertNewArea(currIdRoute, bufferLine, "Linea: "+currRouteShortName, response.areaId);
-					else {  //...altrimenti aggiorno
-						gtfsRepository.updateArea(zr, bufferLine, "Linea: "+currRouteShortName, response.areaId);
+					};
+
+					areaRequest.textArea = bufferLine.toText();
+					if (zr != null)
+						areaRequest.areaId = zr.getIdarea();
+
+					// Il servizio seguente inserisce l'area se areaRequest.areaId é null altrimenti
+					// restituisce l'area associata all'idRoute Inviata
+					CreateAreaResponse response = gtfsService.createAreaAstext(areaRequest);
+
+					// Inserisce o aggiorna su DB (tabella zeta_route) l'area, l'IdRoute e la
+					// descrizione della Route
+					if (zr == null) // se non c'era il record lo inserisco
+						gtfsRepository.insertNewArea(currIdRoute, bufferLine, "Linea: " + currRouteShortName,
+								response.areaId);
+					else { // ...altrimenti aggiorno
+						gtfsRepository.updateArea(zr, bufferLine, "Linea: " + currRouteShortName, response.areaId);
 					}
-					
-					sendMessagesToNewWhereApp(startMsgDate,endMsgDate, messageTitle, messageBody);
-				
+
+					sendMessagesToNewWhereApp(startMsgDate, endMsgDate, messageTitle, messageBody, response.areaId);
+
 				}
-				break; //TODO: to remove, just for test
-				
-			} //for (int j=0...
-			
-			break; //TODO: to remove, just for test
-			
-		} //for (int i=0...
-		
-		//zetaRoutesRepository.insertRoute(249, "prova", line );
+				break; // TODO: to remove, just for test
+
+			} // for (int j=0...
+
+			break; // TODO: to remove, just for test
+
+		} // for (int i=0...
+
+		// zetaRoutesRepository.insertRoute(249, "prova", line );
 	}
-	
+
 	private void displayAlertsDates() throws IOException {
 		log.info("sono schedulato...");
 		URL url = new URL(Alert_url_address);
@@ -336,20 +341,22 @@ public class GtfsAlertProducerApplication {
 		for (FeedEntity entity : feed.getEntityList()) {
 			log.info(entity.getTripUpdate().toString());
 			alert = entity.getAlert();
-			
+
 			if (!entity.getIsDeleted()) {
-				
+
 				long timeStampStart = alert.getActivePeriod(0).getStart();
 				long timeStampEnd = alert.getActivePeriod(0).getEnd();
-				
+
 				log.info(alert.getInformedEntity(0).getRouteId().toString());
-				
+
 				log.info(String.valueOf(timeStampStart));
 				log.info(String.valueOf(timeStampEnd));
 
-				DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ITALIAN);
-				String formattedDateStart = outputFormatter.format(new Timestamp(timeStampStart*1000L).toLocalDateTime());
-				String formattedDateEnd = outputFormatter.format(new Timestamp(timeStampEnd*1000L).toLocalDateTime());
+				DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+						Locale.ITALIAN);
+				String formattedDateStart = outputFormatter
+						.format(new Timestamp(timeStampStart * 1000L).toLocalDateTime());
+				String formattedDateEnd = outputFormatter.format(new Timestamp(timeStampEnd * 1000L).toLocalDateTime());
 
 				log.info(formattedDateStart);
 				log.info(formattedDateEnd);
@@ -357,29 +364,30 @@ public class GtfsAlertProducerApplication {
 			}
 		}
 	}
-	
+
 	private String getDateStringFromPosixTimeStamp(long timeStamp) {
 		DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ITALIAN);
-		String formattedDate = outputFormatter.format(new Timestamp(timeStamp*1000L).toLocalDateTime());
+		String formattedDate = outputFormatter.format(new Timestamp(timeStamp * 1000L).toLocalDateTime());
 		return formattedDate;
 	}
-	
-	private void sendMessagesToNewWhereApp(String startDate,String endDate, String title, String body) throws IOException {
-		//Invio il servizio di notifica di whereapp
+
+	private void sendMessagesToNewWhereApp(String startDate, String endDate, String title, String body, Integer areaId)
+			throws IOException {
+		// Invio il servizio di notifica di whereapp
 		PostMessageByAreaRequest messageRequest = new PostMessageByAreaRequest();
 		messageRequest.setStartDate(startDate);
 		messageRequest.setEndDate(endDate);
 		messageRequest.setSenderId(senderId);
 		messageRequest.setLanguage("IT");
-		messageRequest.setCategoryCode("CTG21");  // Trasporto pubblico
+		messageRequest.setCategoryCode("CTG21"); // Trasporto pubblico
 		messageRequest.setSubject(title);
 		messageRequest.setBody(body);
 		messageRequest.setMultiArea(false);
-		messageRequest.setAreaIds(new ArrayList<Integer>(Arrays.asList(response.areaId)));
+		messageRequest.setAreaIds(new ArrayList<Integer>(Arrays.asList(areaId)));
 		PostMessageByAreaResponse responsePost = gtfsService.postMessageByArea(messageRequest);
-		log.info("Messaggio inviato"+responsePost.toString());	
+		log.info("Messaggio inviato" + responsePost.toString());
 	}
-	
+
 	@Deprecated
 	private void sendMessagesToWhereApp() throws IOException {
 		log.info("sono schedulato...");
@@ -416,7 +424,7 @@ public class GtfsAlertProducerApplication {
 	 * task.cancel(true);
 	 */
 
-	//TODO: the following method will be useful to import csv files into tables
+	// TODO: the following method will be useful to import csv files into tables
 	public void getJson(String filename) throws Exception {
 		File input = new ClassPathResource(filename).getFile();
 		// File input = new File("./src/main/resources/agency.csv");
@@ -424,8 +432,8 @@ public class GtfsAlertProducerApplication {
 			CsvSchema csv = CsvSchema.emptySchema().withHeader();
 			CsvMapper csvMapper = new CsvMapper();
 			MappingIterator<Map<?, ?>> mappingIterator = csvMapper.reader().forType(Map.class).with(csv)
-					.readValues(input);	
-			//Map<?,?> mss = mappingIterator.next();
+					.readValues(input);
+			// Map<?,?> mss = mappingIterator.next();
 			List<Map<?, ?>> list = mappingIterator.readAll();
 			log.info(list.toString());
 		} catch (Exception e) {
