@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,6 +20,9 @@ public class GtfsAlertProducerApplication {
 	
 	@Autowired
 	MessageProducer messageProducer;
+	
+	@Value("${app.initial_scheduler_ms_interval}")
+	long initial_scheduler_ms_interval;	
 
 	private static final Logger log = LoggerFactory.getLogger(GtfsAlertProducerApplication.class);
 
@@ -46,12 +50,11 @@ public class GtfsAlertProducerApplication {
 
 			applicationBean.setAccessToken(tokenResponse.accessToken);
 			applicationBean.setRefreshToken(tokenResponse.refreshToken);
-			applicationBean.startScheduler(5);
+			applicationBean.startScheduler(initial_scheduler_ms_interval);
 
 			log.info("************ ACCESS TOKEN *************");
 			log.info(tokenResponse.accessToken);
 			log.info("***************************************");
-
 			log.info("Scheduler avviato");
 
 		};
@@ -60,18 +63,5 @@ public class GtfsAlertProducerApplication {
 
 	// @EnableScheduling
 	// @Scheduled(fixedRate = 5000)
-
-	/*
-	 * ScheduledExecutorService scheduledExecutorService =
-	 * Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
-	 * then create a scheduled task:
-	 * 
-	 * ScheduledFuture<?> task = scheduledExecutorService.scheduleAtFixedRate( () ->
-	 * System.out.println("some task"), 0, 30, TimeUnit.SECONDS); and when you want
-	 * to cancel the task, do the following:
-	 * 
-	 * task.cancel(true);
-	 */
-
 
 }
