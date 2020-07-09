@@ -109,16 +109,18 @@ public class MessageProducer {
 		try {
 			if (!load_tables_at_start) applicationBean.loadMd5ChecksumFromDisk();
 			
-			// Read the new alert file and cycle over the messages... scarica il file
+			//donwload md5 checksum file
 			FileUtils.copyURLToFile(new URL(remote_gtfs_md5_url), new File(local_gtfs_md5_filepath), CONNECT_TIMEOUT, READ_TIMEOUT);
 
 			String md5CheckSum = "";
 			try {
 				md5CheckSum = new String(Files.readAllBytes(Paths.get(local_gtfs_md5_filepath)));
 			} catch (IOException e) {
+				md5CheckSum=applicationBean.getMd5Checksum();
 				e.printStackTrace();
 			}
-			log.info("***************");
+			
+			log.info("*****MD5*******");
 			log.info(md5CheckSum);
 
 			if (!md5CheckSum.equals(applicationBean.getMd5Checksum())) {
@@ -129,8 +131,8 @@ public class MessageProducer {
 					applicationBean.getTaskScheduler().cancel(false); //stoppa il processo di scheduling
 					tablesLoader.loadTables(); //carica le tabelle dai files scaricati
 					sendMessages();  //Sends messages to whereapp					
-					applicationBean.setMd5Checksum(md5CheckSum);
-					applicationBean.persistMd5Checksum();
+					applicationBean.setMd5Checksum(md5CheckSum); //memorizza il nuovo checksum
+					applicationBean.persistMd5Checksum(); //...e lo scrive su disco
 				} catch(Exception e) {
 					//Riavvia lo scheduling
 					log.info("Errore durante il processo di acquisizione tabelle ed invio messaggi: "+e.getMessage());

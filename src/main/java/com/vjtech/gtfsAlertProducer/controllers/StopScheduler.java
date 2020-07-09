@@ -1,5 +1,7 @@
 package com.vjtech.gtfsAlertProducer.controllers;
 
+import java.util.Date;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +20,14 @@ public class StopScheduler {
 	ApplicationBean sessionDataSource;
 
 	@GetMapping("/stopScheduler")
-	public void stop() {
+	public String stop() {
 		sessionDataSource.getTaskScheduler().cancel(true);
+
 		log.info("Scheduler stopped");
+
+		Date data = new Date();
+		
+		return "<html>\n" + "<header><title>Stato scheduler:</title></header>\n" + "<body>\n" + "Arrestato, data:\n"+ data.toString() + "</body>\n" + "</html>";
+
 	}
 }

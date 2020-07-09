@@ -40,6 +40,8 @@ import com.vjtech.gtfsAlertProducer.services.session.ApplicationBean;
 public class TablesLoader {
 
 	private static final Logger log = LoggerFactory.getLogger(StopScheduler.class);
+	
+	private enum TableType {AGENCY, ROUTES, TRIPS, SHAPES};
 
 	File input = null;
 	Gson gson = null;
@@ -73,30 +75,20 @@ public class TablesLoader {
 		gson = new GsonBuilder().setLenient().serializeNulls().excludeFieldsWithoutExposeAnnotation().create();
 		
 		agencyRepository.deleteAllInBatch();
-		getAndWriteJson("./src/main/resources/agency.csv", "Agency");
-		 
-		
+		getAndWriteJson("./src/main/resources/agency.csv", TableType.AGENCY);
+		 		
 		routesRepository.deleteAllInBatch();
-		getAndWriteJson("./src/main/resources/routes.csv", "Routes");
+		getAndWriteJson("./src/main/resources/routes.csv", TableType.ROUTES);
 		
-		/*
 		tripsRepository.deleteAllInBatch();
-		getAndWriteJson("./src/main/resources/trips.csv", "Trips");
+		getAndWriteJson("./src/main/resources/trips.csv", TableType.TRIPS);
 		
 		shapesRepository.deleteAllInBatch();
-		getAndWriteJson("./src/main/resources/shapes.csv", "Shapes");
-		*/
-
-		/*
-		Date data = new Date();
-		return "<html>\n" + "<header><title>Elaborato</title></header>\n" + "<body>\n" + "Hello world\n"
-				+ data.toString() + "</body>\n" + "</html>";
-		*/
+		getAndWriteJson("./src/main/resources/shapes.csv", TableType.SHAPES);
 
 	}
 
-	// TODO: the following method will be useful to import csv files into tables
-	public <T> void getAndWriteJson(String filename, String type) throws Exception {
+	public void getAndWriteJson(String filename, TableType tableType) throws Exception {
 		File input = new File(filename);
 		try {
 			CsvSchema csv = CsvSchema.emptySchema().withHeader();
@@ -123,24 +115,24 @@ public class TablesLoader {
 
 					if (!jsonResultStr.trim().isEmpty()) {
 
-						if (type.equals("Agency")) {
+						if (tableType==TableType.AGENCY) {
 							Agency agency = gson.fromJson(jsonResultStr, Agency.class);
 							log.info(agency.toString());
 							agencyRepository.save(agency);
 						}
 
-						if (type.equals("Routes")) {
+						if (tableType==TableType.ROUTES) {
 							Routes routes = gson.fromJson(jsonResultStr, Routes.class);
 							log.info(routes.toString());
 							routesRepository.save(routes);
 						}
 
-						if (type.equals("Trips")) {
+						if (tableType==TableType.TRIPS) {
 							Trips trips = gson.fromJson(jsonResultStr, Trips.class);
 							trips_list.add(trips);
 						}
 						
-						if (type.equals("Shapes")) {
+						if (tableType==TableType.SHAPES) {
 							Shapes shapes = gson.fromJson(jsonResultStr, Shapes.class);
 							
 							ShapeId sid = new ShapeId(shapes.getShapeId(), shapes.getShapePtSequence() );
@@ -152,12 +144,12 @@ public class TablesLoader {
 					i++;					
 				}
 
-				if (type.equals("Trips")) {
+				if (tableType==TableType.TRIPS) {
 					tripsRepository.saveAll(trips_list);
 					log.info("Trips - salvataggio..."+String.valueOf(j));
 				}
 
-				if (type.equals("Shapes")) {
+				if (tableType==TableType.SHAPES) {
 					if (shapes_list.size()!=0) {
 					   shapesRepository.saveAll(shapes_list);
 					   log.info("Shapes - salvataggio...");
@@ -171,7 +163,7 @@ public class TablesLoader {
 		}
 	}
 
-	// TODO: the following method will be useful to import csv files into tables
+	// TODO: this method isn't used, but could be useful to convert a whole csv to json, using jackson library
 	public void getJson(String filename) throws Exception {
 		// File input = new ClassPathResource(filename).getFile();
 		File input = new File(filename);  //"./src/main/resources/routes.csv"
@@ -180,7 +172,6 @@ public class TablesLoader {
 			CsvMapper csvMapper = new CsvMapper();
 			MappingIterator<Map<?, ?>> mappingIterator = csvMapper.reader().forType(Map.class).with(csv)
 					.readValues(input);
-			// Map<?,?> mss = mappingIterator.next();
 			List<Map<?, ?>> list = mappingIterator.readAll();
 
 			log.info(list.toString());

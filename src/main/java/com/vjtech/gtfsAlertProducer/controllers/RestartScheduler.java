@@ -1,5 +1,6 @@
 package com.vjtech.gtfsAlertProducer.controllers;
 
+import java.util.Date;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -26,13 +27,20 @@ public class RestartScheduler {
 	MessageProducer messageProducer;
 
 	@GetMapping(value="/restartScheduler",  produces = MediaType.TEXT_HTML_VALUE)
-	public void restartScheduler(@RequestParam(value = "interval", required = false) Optional<Long> interval) {	
+	public String restartScheduler(@RequestParam(value = "interval", required = false) Optional<Long> interval) {	
 		try {
 			applicationBean.restartScheduler(interval.orElse(applicationBean.getScheduler_interval()));
 			log.info("Scheduler restarted");
+			Date data = new Date();
+			return "<html>\n" + "<header><title>Stato scheduler</title></header>\n" + "<body>\n" + "Avviato, data:\n"
+					+ data.toString() + "</body>\n" + "</html>";
+
 		} catch (InterruptedException e) {
 			log.info("Could not restart scheduler");
 			e.printStackTrace();
+			return "<html></html>";
 		}		
+		
+
 	}	
 }
