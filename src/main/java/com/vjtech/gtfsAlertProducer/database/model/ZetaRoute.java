@@ -18,7 +18,7 @@ import org.locationtech.jts.geom.Polygon;
 import lombok.Data;
 
 @Entity
-@Table(name = "zeta_route")
+@Table(name = "route_area")
 //@Data
 public class ZetaRoute implements Serializable {
 
@@ -35,6 +35,9 @@ public class ZetaRoute implements Serializable {
     
 	@Column(name = "idarea")
 	private Integer idarea;
+
+	@Column(name = "idalert_last")
+	private Integer idalert_last;
 
 	@Column(name = "geom_route")
 	private Geometry geomRoute;
@@ -115,7 +118,12 @@ public class ZetaRoute implements Serializable {
 		this.text = text;
 	}
 	
-	
+	public Integer getIdalert_last() {
+		return idalert_last;
+	}
 
+	public void setIdalert_last(Integer idalert_last) {
+		this.idalert_last = idalert_last;
+	}	
 	
 }

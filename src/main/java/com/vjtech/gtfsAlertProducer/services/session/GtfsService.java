@@ -36,7 +36,7 @@ public class GtfsService {
 
 		//add log http in dev env
 		if (Arrays.stream(environment.getActiveProfiles()).anyMatch(env -> env.equalsIgnoreCase("dev"))) {
-			okHttpClientBuilder.addInterceptor(logging);
+			//okHttpClientBuilder.addInterceptor(logging);
 		} 
 		
 		OkHttpClient okHttpClient = okHttpClientBuilder
@@ -83,6 +83,12 @@ public class GtfsService {
 	
 	public PostMessageByAreaResponse postMessageByArea(PostMessageByAreaRequest messageRequest) throws IOException {
 		
+		if (messageRequest.getSubject().length()>=50)
+   		   messageRequest.setSubject(messageRequest.getSubject().substring(0,50-1) );
+
+		if (messageRequest.getBody().length()>=600)
+	   		   messageRequest.setBody(messageRequest.getBody().substring(0,600-1) );
+
 		Call<PostMessageByAreaResponse> retrofitCall = service.postMessageByArea(messageRequest);		
 		
 		Response<PostMessageByAreaResponse> response = retrofitCall.execute();		
@@ -91,6 +97,11 @@ public class GtfsService {
 		}		
 		return response.body();
 		
+	}
+
+	private String substring() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }

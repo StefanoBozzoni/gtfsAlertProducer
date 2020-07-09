@@ -36,7 +36,7 @@ app:
 #spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.PostgreSQLDialect
 #spring.jpa.hibernate.ddl-auto=none
 #spring.jpa.show-sql=true
-#spring.datasource.url=jdbc:postgresql://172.16.0.113:5432/italert
+#spring.datasource.url=jdbc:postgresql://172.16.0.113:5432/itwa
 #spring.datasource.username=postgres
 #spring.datasource.password=@vjtech@
 #spring.jpa.properties.hibernate.default_schema=schematest

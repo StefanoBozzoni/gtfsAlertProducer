@@ -14,7 +14,7 @@ import okhttp3.Response;
 public class AuthorizationTokenInterceptor implements Interceptor {
 
 	@Autowired
-	SessionInMemoryDatasource sessionDatasource;
+	ApplicationBean sessionDatasource;
 
 	@Autowired
 	SessionService sessionService;

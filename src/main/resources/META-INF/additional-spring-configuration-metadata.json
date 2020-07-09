@@ -8,5 +8,60 @@
     "name": "app.message_api_url",
     "type": "java.lang.String",
     "description": "A description for 'app.message_api_url'"
+  },
+  {
+    "name": "app.local_gtfs_md5_filepath",
+    "type": "java.lang.String",
+    "description": "A description for 'app.local_gtfs_md5_filepath'"
+  },
+  {
+    "name": "app.remote_gtfs_md5_url",
+    "type": "java.lang.String",
+    "description": "A description for 'app.remote_gtfs_md5_url'"
+  },
+  {
+    "name": "app.sender_id",
+    "type": "java.lang.String",
+    "description": "A description for 'app.sender_id'"
+  },
+  {
+    "name": "app.operator_password",
+    "type": "java.lang.String",
+    "description": "A description for 'app.operator_password'"
+  },
+  {
+    "name": "app.operator_username",
+    "type": "java.lang.String",
+    "description": "A description for 'app.operator_username'"
+  },
+  {
+    "name": "app.load_tables_at_start",
+    "type": "java.lang.String",
+    "description": "A description for 'app.load_tables_at_start'"
+  },
+  {
+    "name": "app.persist_md5_path",
+    "type": "java.lang.String",
+    "description": "A description for 'app.persist_md5_path'"
+  },
+  {
+    "name": "app.local_unzip_dir",
+    "type": "java.lang.String",
+    "description": "A description for 'app.local_unzip_dir'"
+  },
+  {
+    "name": "app.local_gtfs_zip_path",
+    "type": "java.lang.String",
+    "description": "A description for 'app.local_gtfs_zip_path'"
+  },
+  {
+    "name": "app.remote_gtfs_zip_url",
+    "type": "java.lang.String",
+    "description": "A description for 'app.remote_gtfs_zip_url'"
+  },
+  {
+    "name": "app.alert_url_address",
+    "type": "java.lang.String",
+    "description": "A description for 'app.alert_url_address'"
   }
 ]}

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.vjtech.gtfsAlertProducer.GtfsAlertProducerApplication;
-import com.vjtech.gtfsAlertProducer.services.session.SessionInMemoryDatasource;
+import com.vjtech.gtfsAlertProducer.services.session.ApplicationBean;
 
 @RestController
 public class StopScheduler {
@@ -15,7 +15,7 @@ public class StopScheduler {
 	private static final Logger log = LoggerFactory.getLogger(StopScheduler.class);
 
 	@Autowired
-	SessionInMemoryDatasource sessionDataSource;
+	ApplicationBean sessionDataSource;
 
 	@GetMapping("/stopScheduler")
 	public void stop() {

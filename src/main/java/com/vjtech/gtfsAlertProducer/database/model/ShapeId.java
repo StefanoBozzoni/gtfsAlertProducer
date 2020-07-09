@@ -9,8 +9,13 @@ public class ShapeId implements Serializable {
 	private String shapeId;
 	private Integer shapePtSequence;
 	
-	public ShapeId(String shapeId, Integer shapePtSequence) {
-		this.shapeId = shapeId;
+	public ShapeId() {
+		this.shapeId = null;
+		this.shapePtSequence = null;
+	}
+	
+	public ShapeId(String str, Integer shapePtSequence) {
+		this.shapeId = str;
 		this.shapePtSequence = shapePtSequence;
 	}
 
@@ -44,5 +49,7 @@ public class ShapeId implements Serializable {
 			return false;
 		return true;
 	}
+
+
 
 }

@@ -7,40 +7,53 @@ spring:
        ddl-auto: none
     properties:
       hibernate:
-        default_schema: schematest
+        default_schema: app24pa_romamobilita
         dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
-    show-sql: true
+        jdbc:
+          batch_size: 500
+    #show-sql: true
     open-in-view: false
     database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect
   datasource:
-    url: jdbc:postgresql://172.16.0.113:5432/italert
+    url: jdbc:postgresql://172.16.0.113:5432/itwa
     username: postgres
     password: '@vjtech@'  
+
 
 #logging:
 #  level:
 #    org:
 #      hibernate:
-#        SQL: DEBUG
 #        type:
-#          descriptor:
-#            sql:
-#              BasicBinder: TRACE
+          #descriptor:
+          #  sql:
+          #    BasicBinder: TRACE
+#        SQL: DEBUG
+
               
 #application properties setup
 app:
-  #message_api_url: http://172.16.0.113:9081/itwa/be-messages/
-  message_api_url: https://coll-aru-24sender.app24pa.it/rest/
+  #collaudo message_api_url: http://217.61.43.7:9081/itwa/be-messages/
+  message_api_url: http://172.16.0.113:9081/itwa/be-messages/
+  #message_api_url: https://coll-aru-24sender.app24pa.it/rest/
+  alert_url_address: https://romamobilita.it/sites/default/files/rome_rtgtfs_service_alerts_feed.pb
+  remote_gtfs_md5_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip.md5
+  local_gtfs_md5_filepath: c:/temp/rome_static_gtfs.txt
+  remote_gtfs_zip_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip
+  local_gtfs_zip_path: c:/temp/rome_static_gtfs.zip
+  local_unzip_dir: c:/temp/prova
+  persist_md5_path: c:/temp/md5.txt
+  load_tables_at_start: false
   operator_username: damiano
   operator_password: Damiano123
-  sender_id: 2
+  sender_id: 66
   
 #https://coll-extapi.whereapp.it/
 
 #spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.PostgreSQLDialect
 #spring.jpa.hibernate.ddl-auto=none
 #spring.jpa.show-sql=true
-#spring.datasource.url=jdbc:postgresql://172.16.0.113:5432/italert
+#spring.datasource.url=jdbc:postgresql://172.16.0.113:5432/itwa
 #spring.datasource.username=postgres
 #spring.datasource.password=@vjtech@
 #spring.jpa.properties.hibernate.default_schema=schematest
