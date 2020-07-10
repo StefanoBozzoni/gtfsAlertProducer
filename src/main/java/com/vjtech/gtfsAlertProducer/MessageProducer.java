@@ -61,9 +61,9 @@ public class MessageProducer {
 
 	private static final Logger log = LoggerFactory.getLogger(MessageProducer.class);
 
-	private static final int CONNECT_TIMEOUT = 3000;
+	private static final int CONNECT_TIMEOUT = 30000;
 
-	private static final int READ_TIMEOUT = 3000;
+	private static final int READ_TIMEOUT = 30000;
 
 	@Value("${app.alert_url_address}")
 	String alert_url_address;

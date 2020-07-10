@@ -83,7 +83,7 @@ public class TablesLoader {
 		tripsRepository.deleteAllInBatch();
 		getAndWriteJson("./src/main/resources/trips.csv", TableType.TRIPS);
 		
-		shapesRepository.deleteAllInBatch();
+		//shapesRepository.deleteAllInBatch();
 		getAndWriteJson("./src/main/resources/shapes.csv", TableType.SHAPES);
 
 	}
