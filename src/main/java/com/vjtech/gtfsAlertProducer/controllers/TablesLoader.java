@@ -78,14 +78,14 @@ public class TablesLoader {
 	public void loadTables() throws Exception {
 		gson = new GsonBuilder().setLenient().serializeNulls().excludeFieldsWithoutExposeAnnotation().create();
 		
-		agencyRepository.deleteAllInBatch();
-		getAndWriteJson(local_unzip_dir+"/agency.txt", TableType.AGENCY);
+		//agencyRepository.deleteAllInBatch();
+		//getAndWriteJson(local_unzip_dir+"/agency.txt", TableType.AGENCY);
 		 		
-		routesRepository.deleteAllInBatch();
-		getAndWriteJson(local_unzip_dir+"/routes.txt", TableType.ROUTES);
+		//routesRepository.deleteAllInBatch();
+		//getAndWriteJson(local_unzip_dir+"/routes.txt", TableType.ROUTES);
 		
-		tripsRepository.deleteAllInBatch();
-		getAndWriteJson(local_unzip_dir+"/trips.txt", TableType.TRIPS);
+		//tripsRepository.deleteAllInBatch();
+		//getAndWriteJson(local_unzip_dir+"/trips.txt", TableType.TRIPS);
 		
 		getAndWriteJson(local_unzip_dir+"/shapes.txt", TableType.SHAPES);
 
@@ -110,8 +110,18 @@ public class TablesLoader {
 				shapes_list.clear();
 				
 				i=0;
-				while (mappingIterator.hasNext() && i < 500) {
+				while (mappingIterator.hasNext() && ++i < 500) {
 					Map<?, ?> mss = mappingIterator.next();
+					
+					if (tableType==TableType.SHAPES) {
+						String shapeId = (String) mss.get("shape_id");
+						String ptSeq = (String) mss.get("shape_pt_sequence");
+						
+						ShapeId sid = new ShapeId(shapeId, Integer.parseInt(ptSeq) );
+						if (shapesRepository.findById(sid).isPresent()) {
+							continue;
+						}	
+					}
 
 					JSONObject json = new JSONObject(mss);
 					String jsonResultStr = json.toString();
@@ -135,16 +145,18 @@ public class TablesLoader {
 							trips_list.add(trips);
 						}
 						
-						if (tableType==TableType.SHAPES) {
+						if (tableType==TableType.SHAPES) {							
 							Shapes shapes = gson.fromJson(jsonResultStr, Shapes.class);
+							shapes_list.add(shapes);
 							
+							/*
 							ShapeId sid = new ShapeId(shapes.getShapeId(), shapes.getShapePtSequence() );
 							if (shapesRepository.findById(sid).orElse(null) ==null) {
 								shapes_list.add(shapes);
-							}														
+							}
+							*/														
 						}						
 					}					
-					i++;					
 				}
 
 				if (tableType==TableType.TRIPS) {
