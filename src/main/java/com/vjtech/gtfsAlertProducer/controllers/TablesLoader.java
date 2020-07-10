@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -63,6 +64,9 @@ public class TablesLoader {
 
 	@Autowired
 	ShapesRepository shapesRepository;
+	
+	@Value("${app.local_unzip_dir}")
+	String local_unzip_dir;	
 
 	public TablesLoader() {
 		log.info("Controller TableLoader started");
@@ -75,16 +79,15 @@ public class TablesLoader {
 		gson = new GsonBuilder().setLenient().serializeNulls().excludeFieldsWithoutExposeAnnotation().create();
 		
 		agencyRepository.deleteAllInBatch();
-		getAndWriteJson("./src/main/resources/agency.csv", TableType.AGENCY);
+		getAndWriteJson(local_unzip_dir+"/agency.txt", TableType.AGENCY);
 		 		
 		routesRepository.deleteAllInBatch();
-		getAndWriteJson("./src/main/resources/routes.csv", TableType.ROUTES);
+		getAndWriteJson(local_unzip_dir+"/routes.txt", TableType.ROUTES);
 		
 		tripsRepository.deleteAllInBatch();
-		getAndWriteJson("./src/main/resources/trips.csv", TableType.TRIPS);
+		getAndWriteJson(local_unzip_dir+"/trips.txt", TableType.TRIPS);
 		
-		//shapesRepository.deleteAllInBatch();
-		getAndWriteJson("./src/main/resources/shapes.csv", TableType.SHAPES);
+		getAndWriteJson(local_unzip_dir+"/shapes.txt", TableType.SHAPES);
 
 	}
 

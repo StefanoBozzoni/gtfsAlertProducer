@@ -76,6 +76,7 @@ public class ApplicationBean {
 	}
 	
 	public void persistMd5Checksum() throws IOException {
+		new File(persist_md5_path).delete();
 		Files.write(Paths.get(persist_md5_path), md5Checksum.getBytes());
 	}
 
