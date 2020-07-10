@@ -35,6 +35,7 @@ import org.unbescape.html.HtmlEscape;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.google.protobuf.TextFormat.ParseException;
 import com.google.transit.realtime.GtfsRealtime.Alert;
 import com.google.transit.realtime.GtfsRealtime.FeedEntity;
 import com.google.transit.realtime.GtfsRealtime.FeedMessage;
@@ -192,8 +193,21 @@ public class MessageProducer {
 			log.info(messageTitle);
 
 			for (int j = 0; j < alert.getInformedEntityCount(); j++) {
-
-				Integer currIdRoute = Integer.parseInt(alert.getInformedEntity(j).getRouteId());
+				
+				String routeIdStr = alert.getInformedEntity(j).getRouteId();
+				
+				if (routeIdStr.isEmpty()) {
+					log.info("Routes non presenti nell'alert ! Attualmente queste alert non sono gestite.");
+					break;
+				}
+				Integer currIdRoute;
+				try {
+					currIdRoute = Integer.parseInt(routeIdStr);
+				}
+				catch (NumberFormatException e){
+					log.info("Errore nel parsing della routeId "+routeIdStr);
+					break;
+				}
 
 				// preleva la descrizione della route
 				Optional<Routes> foundRoute = routesRepository.findById(currIdRoute);
@@ -203,6 +217,12 @@ public class MessageProducer {
 				String currRouteShortName = currRoute.getRouteShortName();
 
 				String areaStr = getAreaAsString(currIdRoute);
+				
+				if (areaStr.isEmpty()) {
+					log.info("Punti dell'area non trovati!");
+					break;
+				}
+				
 				GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
 				WKTReader reader = new WKTReader(geometryFactory);
 
