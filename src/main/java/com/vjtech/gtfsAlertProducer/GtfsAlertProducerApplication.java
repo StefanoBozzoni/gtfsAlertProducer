@@ -17,12 +17,12 @@ import com.vjtech.gtfsAlertProducer.services.session.SessionService;
 
 @SpringBootApplication()
 public class GtfsAlertProducerApplication {
-	
+
 	@Autowired
 	MessageProducer messageProducer;
-	
+
 	@Value("${app.initial_scheduler_ms_interval}")
-	long initial_scheduler_ms_interval;	
+	long initial_scheduler_ms_interval;
 
 	private static final Logger log = LoggerFactory.getLogger(GtfsAlertProducerApplication.class);
 
@@ -47,9 +47,9 @@ public class GtfsAlertProducerApplication {
 
 		return (args) -> {
 			log.info("Avvio scheduler...");
-
+			
 			applicationBean.setAccessToken(tokenResponse.accessToken);
-			applicationBean.setRefreshToken(tokenResponse.refreshToken);
+			applicationBean.setRefreshToken(tokenResponse.refreshToken);			
 			applicationBean.startScheduler(initial_scheduler_ms_interval);
 
 			log.info("************ ACCESS TOKEN *************");
@@ -59,7 +59,6 @@ public class GtfsAlertProducerApplication {
 
 		};
 	}
-
 
 	// @EnableScheduling
 	// @Scheduled(fixedRate = 5000)

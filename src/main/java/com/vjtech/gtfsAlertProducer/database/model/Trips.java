@@ -45,19 +45,19 @@ public class Trips implements Serializable {
 	public String tripHeadsign;
 	
 	@Column(name="trip_short_name")
-	@Basic(optional=true)
+	@Basic(optional=false)
 	@SerializedName("trip_short_name")
 	@Expose	
 	public String tripShortName;
 	
 	@Column(name="direction_id")
-	@Basic(optional=true)
+	@Basic(optional=false)
 	@SerializedName("direction_id")
 	@Expose		
-	public Boolean directionId;
+	public Integer directionId;
 	
 	@Column(name="block_id")
-	@Basic(optional=true)
+	@Basic(optional=false)
 	@SerializedName("block_id")
 	@Expose		
 	public String blockId;
@@ -68,19 +68,22 @@ public class Trips implements Serializable {
 	@Expose		
 	public String shapeId;
 	
+	
 	@Column(name="wheelchair_accessible")
-	@Basic(optional=true)
+	@Basic(optional=false)
 	@SerializedName("wheelchair_accessible")
 	@Expose		
 	public Integer wheelchairAccessible;
 	
+	
+	/*
 	@Column(name="bikes_allowed")
 	@Basic(optional=true)
 	@SerializedName("bikes_allowed")
 	@Expose		
 	public String bikesAllowed;
+	*/
 	
-
 	/*
 	public Integer getBikesAllowed() {
 		return bikesAllowed;

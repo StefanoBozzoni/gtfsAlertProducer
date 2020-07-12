@@ -1,35 +1,58 @@
 spring:
   jpa:
+  #devtools:
+  #  livereload:
+  #    enabled: true
     hibernate:
-       ddl-auto: update
+       ddl-auto: none
     properties:
       hibernate:
-        default_schema:  
-        dialect: org.hibernate.dialect.MySQLInnoDBDialect
-    show-sql: true
+        default_schema: app24pa_romamobilita
+        dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+        jdbc:
+          batch_size: 500
+          order_inserts: true
+          order_updates: true 
+    #show-sql: true
     open-in-view: false
-    database-platform: org.hibernate.dialect.MySQLInnoDBDialect                      
+    database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect
   datasource:
-    url: jdbc:mysql://localhost:3306/gtfsdb?useUnicode=true&useLegacyDatetimeCode=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false
-    username: root
-    password: MyNewPass
+    url: jdbc:postgresql://coll-pgitwa.cluster-cjn0ypqxmpig.eu-west-1.rds.amazonaws.com:5432/itwa
+    username: postgres
+    password: P0stG1tWA00
+
 
 #logging:
 #  level:
 #    org:
 #      hibernate:
-#        SQL: DEBUG
 #        type:
-#          descriptor:
-#            sql:
-#              BasicBinder: TRACE
+          #descriptor:
+          #  sql:
+          #    BasicBinder: TRACE
+#        SQL: DEBUG
+
               
 #application properties setup
 app:
-  message_api_url: https://coll-aru-24sender.app24pa.it/rest/
+  #collaudo message_api_url: http://217.61.43.7:9081/itwa/be-messages/
+  message_api_url: http://172.16.0.113:9081/itwa/be-messages/
+  #message_api_url: https://coll-aru-24sender.app24pa.it/rest/
+  alert_url_address: https://romamobilita.it/sites/default/files/rome_rtgtfs_service_alerts_feed.pb
+  initial_scheduler_ms_interval: 10	
+  remote_gtfs_md5_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip.md5
+  local_gtfs_md5_filepath: c:/temp/rome_static_gtfs.txt
+  remote_gtfs_zip_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip
+  local_gtfs_zip_path: c:/temp/rome_static_gtfs.zip
+  local_unzip_dir: c:/temp/prova
+  persist_md5_path: c:/temp/md5.txt
+  load_tables_at_start: false
   operator_username: damiano
   operator_password: Damiano123
-  sender_id: 2
+  sender_id: 89
   
 #https://coll-extapi.whereapp.it/
 
@@ -49,13 +72,3 @@ app:
 
 #application properties setup
 #app.message_api_url = https://coll-extapi.whereapp.it/
-
-#spring.devtools.livereload.enabled=true
-#spring.jpa.hibernate.ddl-auto=update
-#spring.datasource.url=jdbc:mysql://localhost:3306/gtfsdb?useUnicode=true&useLegacyDatetimeCode=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false
-#spring.datasource.username=root
-#spring.datasource.password=MyNewPass
-#spring.jpa.show-sql=false
-#spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLInnoDBDialect
-#server.port=3306
-

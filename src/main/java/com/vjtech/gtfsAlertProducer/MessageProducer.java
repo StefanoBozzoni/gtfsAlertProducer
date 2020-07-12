@@ -124,7 +124,7 @@ public class MessageProducer {
 			log.info("*****MD5*******");
 			log.info(md5CheckSum);
 
-			if (!md5CheckSum.equals(applicationBean.getMd5Checksum())) {
+			if (!md5CheckSum.equals(applicationBean.getMd5Checksum()) || true) {
 				log.info("download Files");
 				
 				try {
