@@ -80,65 +80,66 @@ public class MessageProducer {
 
 	@Autowired
 	ApplicationBean applicationBean;
-	
+
 	@Autowired
 	TablesLoader tablesLoader;
 
 	@Value("${app.sender_id}")
 	int appSenderId;
-	
+
 	@Value("${app.remote_gtfs_md5_url}")
 	String remote_gtfs_md5_url;
 
 	@Value("${app.local_gtfs_md5_filepath}")
 	String local_gtfs_md5_filepath;
-	
+
 	@Value("${app.remote_gtfs_zip_url}")
 	String remote_gtfs_zip_url;
-	
+
 	@Value("${app.local_gtfs_zip_path}")
 	String local_gtfs_zip_path;
 
 	@Value("${app.local_unzip_dir}")
-	String local_unzip_dir;	
+	String local_unzip_dir;
 
 	@Value("${app.load_tables_at_start}")
-	Boolean load_tables_at_start;	
-	
+	Boolean load_tables_at_start;
+
 	public void checkRemoteFileUpdates() {
 
 		try {
-			if (!load_tables_at_start) applicationBean.loadMd5ChecksumFromDisk();
-			
-			//donwload md5 checksum file
-			FileUtils.copyURLToFile(new URL(remote_gtfs_md5_url), new File(local_gtfs_md5_filepath), CONNECT_TIMEOUT, READ_TIMEOUT);
+			if (!load_tables_at_start)
+				applicationBean.loadMd5ChecksumFromDisk();
+
+			// donwload md5 checksum file
+			FileUtils.copyURLToFile(new URL(remote_gtfs_md5_url), new File(local_gtfs_md5_filepath), CONNECT_TIMEOUT,
+					READ_TIMEOUT);
 
 			String md5CheckSum = "";
 			try {
 				md5CheckSum = new String(Files.readAllBytes(Paths.get(local_gtfs_md5_filepath)));
 			} catch (IOException e) {
-				md5CheckSum=applicationBean.getMd5Checksum();
+				md5CheckSum = applicationBean.getMd5Checksum();
 				e.printStackTrace();
 			}
-			
+
 			log.info("*****MD5*******");
 			log.info(md5CheckSum);
 
-			if (!md5CheckSum.equals(applicationBean.getMd5Checksum()) || true) {
+			if (!md5CheckSum.equals(applicationBean.getMd5Checksum())) {
 				log.info("download Files");
-				
+
 				try {
-					downloadFiles(); //scarica i file dal link di Roma mobilità				
-					applicationBean.getTaskScheduler().cancel(false); //stoppa il processo di scheduling
-					tablesLoader.loadTables(); //carica le tabelle dai files scaricati
-					sendMessages();  //Sends messages to whereapp					
-					applicationBean.setMd5Checksum(md5CheckSum); //memorizza il nuovo checksum
-					applicationBean.persistMd5Checksum(); //...e lo scrive su disco
-				} catch(Exception e) {
-					//Riavvia lo scheduling
-					log.info("Errore durante il processo di acquisizione tabelle ed invio messaggi: "+e.getMessage());
-				}										
-				finally {
+					downloadFiles(); // scarica i file dal link di Roma mobilità
+					applicationBean.getTaskScheduler().cancel(false); // stoppa il processo di scheduling
+					tablesLoader.loadTables(); // carica le tabelle dai files scaricati
+					sendMessages(); // Sends messages to whereapp
+					applicationBean.setMd5Checksum(md5CheckSum); // memorizza il nuovo checksum
+					applicationBean.persistMd5Checksum(); // ...e lo scrive su disco
+				} catch (Exception e) {
+					// Riavvia lo scheduling
+					log.info("Errore durante il processo di acquisizione tabelle ed invio messaggi: " + e.getMessage());
+				} finally {
 					log.info("restarting scheduler");
 					applicationBean.restartScheduler();
 				}
@@ -152,17 +153,17 @@ public class MessageProducer {
 
 	private void downloadFiles() throws IOException {
 		File dest_file = new File(local_gtfs_zip_path);
-		dest_file.delete();		
-		FileUtils.copyURLToFile(new URL(remote_gtfs_zip_url),dest_file, CONNECT_TIMEOUT, READ_TIMEOUT);
-	
-		log.info("file "+remote_gtfs_zip_url+" scaricato");
+		dest_file.delete();
+		FileUtils.copyURLToFile(new URL(remote_gtfs_zip_url), dest_file, CONNECT_TIMEOUT, READ_TIMEOUT);
+
+		log.info("file " + remote_gtfs_zip_url + " scaricato");
 		try {
 			UnzipFiles.unzip(local_gtfs_zip_path, local_unzip_dir);
-			log.info("file "+local_gtfs_zip_path+" scompattato");
-		} catch(Exception e) {
-			log.info("errore nello scompattamento del file "+local_gtfs_zip_path+" "+e.getMessage());
+			log.info("file " + local_gtfs_zip_path + " scompattato");
+		} catch (Exception e) {
+			log.info("errore nello scompattamento del file " + local_gtfs_zip_path + " " + e.getMessage());
 		}
-		
+
 	}
 
 	private void sendMessages() throws IOException {
@@ -177,8 +178,8 @@ public class MessageProducer {
 			FeedEntity entity = feed.getEntityList().get(i);
 			Alert alert = entity.getAlert();
 			Integer currIdAlert = Integer.parseInt(entity.getId());
-			
-			log.info("***********AREA: "+currIdAlert);
+
+			log.info("***********AREA: " + currIdAlert);
 
 			// recupero informazioni alert e route
 			long timeStampStart = alert.getActivePeriod(0).getStart();
@@ -193,9 +194,10 @@ public class MessageProducer {
 			log.info(messageTitle);
 
 			for (int j = 0; j < alert.getInformedEntityCount(); j++) {
-				
+
 				String routeIdStr = alert.getInformedEntity(j).getRouteId();
-				
+				log.info("Route Id: " + routeIdStr);
+
 				if (routeIdStr.isEmpty()) {
 					log.info("Routes non presenti nell'alert ! Attualmente queste alert non sono gestite.");
 					break;
@@ -203,26 +205,28 @@ public class MessageProducer {
 				Integer currIdRoute;
 				try {
 					currIdRoute = Integer.parseInt(routeIdStr);
-				}
-				catch (NumberFormatException e){
-					log.info("Errore nel parsing della routeId "+routeIdStr);
+				} catch (NumberFormatException e) {
+					log.info("Errore nel parsing della routeId " + routeIdStr);
 					break;
 				}
 
 				// preleva la descrizione della route
 				Optional<Routes> foundRoute = routesRepository.findById(currIdRoute);
-				if (!foundRoute.isPresent()) break; 
+				if (!foundRoute.isPresent())
+					break;
 
 				Routes currRoute = foundRoute.get();
 				String currRouteShortName = currRoute.getRouteShortName();
 
+				log.info("Before getArea");
 				String areaStr = getAreaAsString(currIdRoute);
-				
+				log.info("After getArea");
+
 				if (areaStr.isEmpty()) {
 					log.info("Punti dell'area non trovati!");
 					break;
 				}
-				
+
 				GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
 				WKTReader reader = new WKTReader(geometryFactory);
 
@@ -238,7 +242,7 @@ public class MessageProducer {
 
 				ZetaRoute zr = gtfsRepository.findZetaRouteByIdroute(currIdRoute);
 
-				Integer zrIdAlert=0;
+				Integer zrIdAlert = 0;
 				if (zr == null)
 					zrIdAlert = 0;
 				else {
@@ -248,10 +252,13 @@ public class MessageProducer {
 						zrIdAlert = zr.getIdalert_last();
 				}
 
-				log.info("************ELABORATO***********: "+gtfsRepository.isAlertElaborated(currIdAlert).toString());
-				
-				//se non trova il record, oppure lo trova con un area non definita o se l'idalert è successivo a quello già inviato 
-				if (zr == null || (zr != null && (zr.getIdarea() == null || !gtfsRepository.isAlertElaborated(currIdAlert) ))) {  // currIdAlert>zrIdAlert
+				log.info("************ELABORATO***********: "
+						+ gtfsRepository.isAlertElaborated(currIdAlert).toString());
+
+				// se non trova il record, oppure lo trova con un area non definita o se
+				// l'idalert è successivo a quello già inviato
+				if (zr == null
+						|| (zr != null && (zr.getIdarea() == null || !gtfsRepository.isAlertElaborated(currIdAlert)))) { // currIdAlert>zrIdAlert
 					log.info(bufferLine.toText());
 					@SuppressWarnings("serial")
 					CreateAreaRequest areaRequest = new CreateAreaRequest() {
@@ -268,25 +275,27 @@ public class MessageProducer {
 					// Il servizio seguente inserisce l'area se areaRequest.areaId é null altrimenti
 					// restituisce l'area associata all'idRoute Inviata
 					CreateAreaResponse response = gtfsService.createAreaAstext(areaRequest);
-					
+
 					try {
-						
-						// Inserisce o aggiorna su DB (tabella zeta_route) l'area, l'IdRoute e la descrizione della Route
+
+						// Inserisce o aggiorna su DB (tabella zeta_route) l'area, l'IdRoute e la
+						// descrizione della Route
 						if (zr == null) // se il record non c'è, lo inserisco
-							gtfsRepository.insertNewArea(currIdRoute, bufferLine, currRouteShortName, response.areaId, currIdAlert);
+							gtfsRepository.insertNewArea(currIdRoute, bufferLine, currRouteShortName, response.areaId,
+									currIdAlert);
 						else { // ...altrimenti aggiorno
 							gtfsRepository.updateArea(zr, bufferLine, currRouteShortName, response.areaId, currIdAlert);
 						}
-						
-						//Invio messaggio di alert
+
+						// Invio messaggio di alert
 						sendMessagesToNewWhereApp(startMsgDate, endMsgDate, messageTitle, messageBody, response.areaId);
 						gtfsRepository.registerAlert(currIdAlert, Constants.ELABORATA);
-						
-					} catch(Exception e) {						
-						
+
+					} catch (Exception e) {
+
 						gtfsRepository.registerAlert(currIdAlert, Constants.DA_ELABORARE);
 						log.info("Errore nell'invio del messaggio:" + e.getMessage());
-						
+
 					}
 				}
 
@@ -318,18 +327,26 @@ public class MessageProducer {
 				.map((Points el) -> el.getLongitude() + " " + el.getLatitude()).collect(Collectors.toList());
 		String points_str = Strings.join(listPoints, ',');
 		log.info(points_str);
-		return points_str.isEmpty()?"":"LINESTRING(" + points_str + ")";
+		return points_str.isEmpty() ? "" : "LINESTRING(" + points_str + ")";
 	}
 
 	private List<Points> getGeoPoints(long IdRoute) {
-		List<Object[]> object_list = routesRepository.findPointsByRouteId2(IdRoute);
-		List<Points> points_list = object_list.stream().map((Object[] el) -> {
-			BigDecimal lat = new BigDecimal(el[0].toString());
-			BigDecimal lon = new BigDecimal(el[1].toString());
-			return new Points(lon, lat);
-		}).collect(Collectors.toList());
+		log.info("before executing query");
+		try {
+			List<Object[]> object_list = routesRepository.findPointsByRouteId2(IdRoute);
+			List<Points> points_list = object_list.stream().map((Object[] el) -> {
+				BigDecimal lat = new BigDecimal(el[0].toString());
+				BigDecimal lon = new BigDecimal(el[1].toString());
+				return new Points(lon, lat);
+			}).collect(Collectors.toList());
+			return points_list;
+		} catch (Throwable e) {
+			log.info(e.getMessage());
+			e.printStackTrace();
+		}
+		log.info("after executing query");
+		return new ArrayList<Points>();
 
-		return points_list;
 	}
 
 	private void displayAlertsDates() throws IOException {

@@ -11,14 +11,22 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import javax.sql.DataSource;
+import javax.transaction.Transactional;
+
 import org.json.JSONObject;
+import org.postgresql.PGConnection;
+import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.util.ByteStreamWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.MappingIterator;
@@ -78,59 +86,100 @@ public class TablesLoader {
 	public void loadTables() throws Exception {
 		gson = new GsonBuilder().setLenient().serializeNulls().excludeFieldsWithoutExposeAnnotation().create();
 
-		// agencyRepository.deleteAllInBatch();
-		// getAndWriteJson(local_unzip_dir+"/agency.txt", TableType.AGENCY);
+		agencyRepository.deleteAllInBatch();
+		getAndWriteJson(local_unzip_dir+"/agency.txt", TableType.AGENCY);
 
-		// routesRepository.deleteAllInBatch();
-		// getAndWriteJson(local_unzip_dir+"/routes.txt", TableType.ROUTES);
+		routesRepository.deleteAllInBatch();
+		getAndWriteJson(local_unzip_dir+"/routes.txt", TableType.ROUTES);
 
 		tripsRepository.deleteAllInBatch();
 		tripsRepository.flush();
-		getAndWriteJson(local_unzip_dir+"/trips.txt", TableType.TRIPS);
+		getAndWriteJson(local_unzip_dir + "/trips.txt", TableType.TRIPS);
+		tripsRepository.flush();
 
-		//shapesRepository.deleteAllInBatch();
-		//getAndWriteJson(local_unzip_dir + "/shapes.txt", TableType.SHAPES);
+		shapesRepository.deleteAllInBatch();
+		shapesRepository.flush();
+		getAndWriteJson(local_unzip_dir + "/shapes.txt", TableType.SHAPES);
+		shapesRepository.flush();
 
 	}
 
 	@Autowired
 	private Environment env;
-	
+
+	@Autowired
+	DataSource datasource;
+
+	@Transactional
 	private void loadFile(String connUrl, String myUid, String myPwd, String tableName, String fileName)
-			throws SQLException, FileNotFoundException, IOException {
-		try (Connection conn = DriverManager.getConnection(connUrl, myUid, myPwd)) {
-			long rowsInserted = new CopyManager((BaseConnection) conn).copyIn(
-					"COPY "+tableName+" FROM STDIN (FORMAT csv, HEADER)",
-					new BufferedReader(new FileReader(fileName)));
-			log.info(String.format("Table %s : %d row(s) inserted%n", tableName, rowsInserted));
+			throws SQLException, FileNotFoundException, IOException, InterruptedException, Exception {
+
+		// Connection conn = datasource.getConnection();
+
+		// try (Connection conn = DriverManager.getConnection(connUrl, myUid, myPwd)) {
+		/*
+		BaseConnection pgConnection = datasource.getConnection().unwrap(BaseConnection.class);
+		CopyManager copyManager = new CopyManager(pgConnection);
+		CopyIn cp = copyManager.copyIn("COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)");
+		BufferedReader reader = new BufferedReader(new FileReader(fileName));
+		cp.writeToCopy((ByteStreamWriter) reader);
+		*/
+		
+		
+		/*
+		String str;
+		char[] cbuf = new char[1024];
+		try {
+		    while ( !( str = reader.readLine()).isEmpty()) {
+		    	byte[] bytes = str.getBytes();
+		        cp.writeToCopy(bytes, 0, bytes.length);
+		    }
+		    cp.endCopy();
+		} finally { // see to it that we do not leave the connection locked
+		    if(cp.isActive())
+		        cp.cancelCopy();
 		}
+		*/
+		
+		BaseConnection pgConnection = datasource.getConnection().unwrap(BaseConnection.class);
+		BufferedReader reader = new BufferedReader(new FileReader(fileName));
+		long rowsInserted = new CopyManager(pgConnection).copyIn(
+				"COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)", reader);
+		log.info(String.format("Table %s : %d row(s) inserted%n", tableName, rowsInserted));
+		reader.close();
+		
+		pgConnection.cancelQuery();
+		DataSourceUtils.releaseConnection(pgConnection, datasource);
+		Thread.sleep(60000);
+
 	}
 
 	public void getAndWriteJson(String filename, TableType tableType) throws Exception {
 		File input = new File(filename);
 		try {
-			
-			String dbConnectionUrl 	= env.getProperty("spring.datasource.url");
-			String dbPassword 		= env.getProperty("spring.datasource.password");
-			String dbUserName		= env.getProperty("spring.datasource.username");
+
+			String dbConnectionUrl = env.getProperty("spring.datasource.url");
+			String dbPassword = env.getProperty("spring.datasource.password");
+			String dbUserName = env.getProperty("spring.datasource.username");
 
 			// Try Download file
-			if (tableType==TableType.TRIPS) 
-				loadFile(dbConnectionUrl,dbUserName, dbPassword, "app24pa_romamobilita.trips", filename);
-			else if (tableType==TableType.SHAPES)	
-				loadFile(dbConnectionUrl,dbUserName, dbPassword, "app24pa_romamobilita.shapes", local_unzip_dir+"/shapes.txt");
+			if (tableType == TableType.TRIPS)
+				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.trips", filename);
+			else if (tableType == TableType.SHAPES)
+				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.shapes",
+						local_unzip_dir + "/shapes.txt");
 			else {
-				
+
 				CsvSchema csv = CsvSchema.emptySchema().withHeader();
 				CsvMapper csvMapper = new CsvMapper();
 				MappingIterator<Map<?, ?>> mappingIterator = csvMapper.reader().forType(Map.class).with(csv)
 						.readValues(input);
 
-				//List<Trips> trips_list = new ArrayList<Trips>();
+				// List<Trips> trips_list = new ArrayList<Trips>();
 				int i = 0;
 				int j = 0;
 				while (mappingIterator.hasNext()) {
-					//trips_list.clear();
+					// trips_list.clear();
 					i = 0;
 					while (mappingIterator.hasNext() && ++i < 500) {
 						Map<?, ?> mss = mappingIterator.next();
@@ -153,21 +202,17 @@ public class TablesLoader {
 							}
 
 							/*
-							if (tableType == TableType.TRIPS) {
-								Trips trips = gson.fromJson(jsonResultStr, Trips.class);
-								trips_list.add(trips);
-							}
-							*/
+							 * if (tableType == TableType.TRIPS) { Trips trips =
+							 * gson.fromJson(jsonResultStr, Trips.class); trips_list.add(trips); }
+							 */
 
 						}
 					}
-					
+
 					/*
-					if (tableType == TableType.TRIPS) {
-						tripsRepository.saveAll(trips_list);
-						log.info("Trips - salvataggio..." + String.valueOf(j));
-					}
-					*/
+					 * if (tableType == TableType.TRIPS) { tripsRepository.saveAll(trips_list);
+					 * log.info("Trips - salvataggio..." + String.valueOf(j)); }
+					 */
 
 					j += i;
 				}
@@ -175,7 +220,6 @@ public class TablesLoader {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
 
 	}
 

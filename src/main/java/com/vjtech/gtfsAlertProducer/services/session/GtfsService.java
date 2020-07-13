@@ -35,8 +35,8 @@ public class GtfsService {
 		OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
 		//add log http in dev env
-		if (Arrays.stream(environment.getActiveProfiles()).anyMatch(env -> env.equalsIgnoreCase("dev"))) {
-			//okHttpClientBuilder.addInterceptor(logging);
+		if (Arrays.stream(environment.getActiveProfiles()).anyMatch(env -> env.equalsIgnoreCase("prod"))) {
+			okHttpClientBuilder.addInterceptor(logging);
 		} 
 		
 		OkHttpClient okHttpClient = okHttpClientBuilder
