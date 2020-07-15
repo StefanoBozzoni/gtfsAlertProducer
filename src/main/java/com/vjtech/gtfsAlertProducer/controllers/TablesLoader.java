@@ -148,12 +148,14 @@ public class TablesLoader {
 					"COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)", reader);
 			log.info(String.format("Table %s : %d row(s) inserted%n", tableName, rowsInserted));
 			reader.close();
-			pgConnection.commit();
+			pgConnection.commit();			
 			pgConnection.setAutoCommit(false);	//non rimuovere, sembra che questa istruzione impedisca che la query successiva si pianti (è un bug di postgres jdbc)	
-			pgConnection.setAutoCommit(true);	
+			pgConnection.setAutoCommit(true);
+			
 			copyManager = null;
 			reader = null;
 			DataSourceUtils.releaseConnection(pgConnection, datasource);
+			pgConnection.close();
 		}
 	}
 	
@@ -207,7 +209,7 @@ public class TablesLoader {
 			else if (tableType == TableType.SHAPES) {
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.shapes",
 						local_unzip_dir + "/shapes.txt");
-			    //Thread.sleep(60000);
+			    Thread.sleep(60000);
 			}
 			else {
 
