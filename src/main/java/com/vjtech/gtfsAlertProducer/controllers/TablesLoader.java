@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -15,16 +16,19 @@ import javax.sql.DataSource;
 import javax.transaction.Transactional;
 
 import org.json.JSONObject;
-import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
+import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.util.ByteStreamWriter;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Component;
@@ -110,49 +114,84 @@ public class TablesLoader {
 	@Autowired
 	DataSource datasource;
 
-	@Transactional
 	private void loadFile(String connUrl, String myUid, String myPwd, String tableName, String fileName)
 			throws SQLException, FileNotFoundException, IOException, InterruptedException, Exception {
 
 		// Connection conn = datasource.getConnection();
-
-		// try (Connection conn = DriverManager.getConnection(connUrl, myUid, myPwd)) {
 		/*
 		BaseConnection pgConnection = datasource.getConnection().unwrap(BaseConnection.class);
 		CopyManager copyManager = new CopyManager(pgConnection);
-		CopyIn cp = copyManager.copyIn("COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)");
-		BufferedReader reader = new BufferedReader(new FileReader(fileName));
-		cp.writeToCopy((ByteStreamWriter) reader);
-		*/
-		
-		
-		/*
+		CopyIn cp2 = copyManager.copyIn("COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)");
+		//cp2.writeToCopy(writer);
+
 		String str;
 		char[] cbuf = new char[1024];
 		try {
 		    while ( !( str = reader.readLine()).isEmpty()) {
 		    	byte[] bytes = str.getBytes();
-		        cp.writeToCopy(bytes, 0, bytes.length);
+		        cp2.writeToCopy(bytes, 0, bytes.length);
 		    }
-		    cp.endCopy();
+		    cp2.endCopy();
 		} finally { // see to it that we do not leave the connection locked
-		    if(cp.isActive())
-		        cp.cancelCopy();
+		    if(cp2.isActive())
+		        cp2.cancelCopy();
 		}
 		*/
 		
-		BaseConnection pgConnection = datasource.getConnection().unwrap(BaseConnection.class);
-		BufferedReader reader = new BufferedReader(new FileReader(fileName));
-		long rowsInserted = new CopyManager(pgConnection).copyIn(
-				"COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)", reader);
-		log.info(String.format("Table %s : %d row(s) inserted%n", tableName, rowsInserted));
-		reader.close();
-		
-		pgConnection.cancelQuery();
-		DataSourceUtils.releaseConnection(pgConnection, datasource);
-		Thread.sleep(60000);
-
+		// try (Connection conn = DriverManager.getConnection(connUrl, myUid, myPwd)) {
+		//try (BaseConnection pgConnection = datasource.getConnection().unwrap(BaseConnection.class)) {
+		try (Connection pgConnection = DriverManager.getConnection(connUrl, myUid, myPwd)) { 
+			pgConnection.setAutoCommit(false);		
+			BufferedReader reader = new BufferedReader(new FileReader(fileName));
+			CopyManager copyManager = ((BaseConnection)pgConnection).getCopyAPI();
+			long rowsInserted = copyManager.copyIn(
+					"COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)", reader);
+			log.info(String.format("Table %s : %d row(s) inserted%n", tableName, rowsInserted));
+			reader.close();
+			pgConnection.commit();
+			pgConnection.setAutoCommit(false);	//non rimuovere, sembra che questa istruzione impedisca che la query successiva si pianti (è un bug di postgres jdbc)	
+			pgConnection.setAutoCommit(true);	
+			copyManager = null;
+			reader = null;
+			DataSourceUtils.releaseConnection(pgConnection, datasource);
+		}
 	}
+	
+  public long copyIn(final String sql, Reader from, int bufferSize, BaseConnection connection)
+	      throws SQLException, IOException {
+	  
+	    Encoding encoding = connection.getEncoding();
+
+	    char[] cbuf = new char[bufferSize];
+	    int len;
+	    CopyIn cp = copyIn(sql, connection);
+	    try {
+	      while ((len = from.read(cbuf)) >= 0) {
+	        if (len > 0) {
+	          byte[] buf = encoding.encode(new String(cbuf, 0, len));
+	          cp.writeToCopy(buf, 0, buf.length);
+	        }
+	      }
+	      return cp.endCopy();
+	    } finally { // see to it that we do not leave the connection locked
+	      if (cp.isActive()) {
+	        cp.cancelCopy();
+	      }
+	    }
+	  }
+  
+  public CopyIn copyIn(String sql, BaseConnection connection) throws SQLException {
+	    QueryExecutor queryExecutor = connection.getQueryExecutor();
+	    CopyOperation op = queryExecutor.startCopy(sql, connection.getAutoCommit());
+	    if (op == null || op instanceof CopyIn) {
+	      return (CopyIn) op;
+	    } else {
+	      op.cancelCopy();
+	      throw new PSQLException(GT.tr("Requested CopyIn but got {0}", op.getClass().getName()),
+	              PSQLState.WRONG_OBJECT_TYPE);
+	    }
+	  }
+
 
 	public void getAndWriteJson(String filename, TableType tableType) throws Exception {
 		File input = new File(filename);
@@ -165,9 +204,11 @@ public class TablesLoader {
 			// Try Download file
 			if (tableType == TableType.TRIPS)
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.trips", filename);
-			else if (tableType == TableType.SHAPES)
+			else if (tableType == TableType.SHAPES) {
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.shapes",
 						local_unzip_dir + "/shapes.txt");
+			    //Thread.sleep(60000);
+			}
 			else {
 
 				CsvSchema csv = CsvSchema.emptySchema().withHeader();
