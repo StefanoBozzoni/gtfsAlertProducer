@@ -9,6 +9,7 @@ import java.io.Reader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
@@ -79,13 +80,16 @@ public class TablesLoader {
 
 	@Value("${app.local_unzip_dir}")
 	String local_unzip_dir;
+	
+	@Autowired
+	private Environment env;
+
+	@Autowired
+	DataSource datasource;
 
 	public TablesLoader() {
 		log.info("Controller TableLoader started");
 	}
-
-	// @GetMapping(value = "/loadTables", produces = MediaType.TEXT_HTML_VALUE)
-	// @ResponseBody
 
 	public void loadTables() throws Exception {
 		gson = new GsonBuilder().setLenient().serializeNulls().excludeFieldsWithoutExposeAnnotation().create();
@@ -103,16 +107,10 @@ public class TablesLoader {
 
 		shapesRepository.deleteAllInBatch();
 		shapesRepository.flush();
+		//this.jdbcTemplate.update("delete from shapes");
 		getAndWriteJson(local_unzip_dir + "/shapes.txt", TableType.SHAPES);
 		shapesRepository.flush();
-
 	}
-
-	@Autowired
-	private Environment env;
-
-	@Autowired
-	DataSource datasource;
 
 	private void loadFile(String connUrl, String myUid, String myPwd, String tableName, String fileName)
 			throws SQLException, FileNotFoundException, IOException, InterruptedException, Exception {
@@ -141,7 +139,15 @@ public class TablesLoader {
 		// try (Connection conn = DriverManager.getConnection(connUrl, myUid, myPwd)) {
 		//try (BaseConnection pgConnection = datasource.getConnection().unwrap(BaseConnection.class)) {
 		try (Connection pgConnection = DriverManager.getConnection(connUrl, myUid, myPwd)) { 
-			pgConnection.setAutoCommit(false);		
+			pgConnection.setAutoCommit(false);
+			//pgConnection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+			/*
+		    Statement stat = pgConnection.createStatement();
+		    String sqlDelete = "Delete from "+tableName;
+		    stat.execute(sqlDelete);
+		    pgConnection.commit();
+		    stat.close();
+		    */
 			BufferedReader reader = new BufferedReader(new FileReader(fileName));
 			CopyManager copyManager = ((BaseConnection)pgConnection).getCopyAPI();
 			long rowsInserted = copyManager.copyIn(
@@ -204,8 +210,10 @@ public class TablesLoader {
 			String dbUserName = env.getProperty("spring.datasource.username");
 
 			// Try Download file
-			if (tableType == TableType.TRIPS)
+			if (tableType == TableType.TRIPS) {
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.trips", filename);
+			    Thread.sleep(60000);
+			}
 			else if (tableType == TableType.SHAPES) {
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.shapes",
 						local_unzip_dir + "/shapes.txt");
