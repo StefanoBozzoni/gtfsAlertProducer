@@ -112,8 +112,7 @@ public class MessageProducer {
 				applicationBean.loadMd5ChecksumFromDisk();
 
 			// donwload md5 checksum file
-			FileUtils.copyURLToFile(new URL(remote_gtfs_md5_url), new File(local_gtfs_md5_filepath), CONNECT_TIMEOUT,
-					READ_TIMEOUT);
+			FileUtils.copyURLToFile(new URL(remote_gtfs_md5_url), new File(local_gtfs_md5_filepath), CONNECT_TIMEOUT, READ_TIMEOUT);
 
 			String md5CheckSum = "";
 			try {
@@ -143,6 +142,8 @@ public class MessageProducer {
 					log.info("restarting scheduler");
 					applicationBean.restartScheduler();
 				}
+			} else {
+				sendMessages(); // Sends messages to whereapp
 			}
 
 		} catch (Exception e) {
@@ -242,7 +243,8 @@ public class MessageProducer {
 
 				ZetaRoute zr = gtfsRepository.findZetaRouteByIdroute(currIdRoute);
 
-				Integer zrIdAlert = 0;
+				/*
+				Integer zrIdAlert;
 				if (zr == null)
 					zrIdAlert = 0;
 				else {
@@ -251,12 +253,13 @@ public class MessageProducer {
 					} else
 						zrIdAlert = zr.getIdalert_last();
 				}
+				*/
 
 				log.info("************ELABORATO***********: "
 						+ gtfsRepository.isAlertElaborated(currIdAlert).toString());
 
 				// se non trova il record, oppure lo trova con un area non definita o se
-				// l'idalert è successivo a quello già inviato
+				// l'idalert non è stato ancora registrato in tabella (non è stao elaborato)...
 				if (zr == null
 						|| (zr != null && (zr.getIdarea() == null || !gtfsRepository.isAlertElaborated(currIdAlert)))) { // currIdAlert>zrIdAlert
 					log.info(bufferLine.toText());
@@ -349,6 +352,7 @@ public class MessageProducer {
 
 	}
 
+	@Deprecated
 	private void displayAlertsDates() throws IOException {
 		log.info("sono schedulato...");
 		URL url = new URL(alert_url_address);

@@ -165,40 +165,44 @@ public class TablesLoader {
 		}
 	}
 	
-  public long copyIn(final String sql, Reader from, int bufferSize, BaseConnection connection)
-	      throws SQLException, IOException {
+	/*
+		public long copyIn(final String sql, Reader from, int bufferSize, BaseConnection connection)
+		      throws SQLException, IOException {
+		  
+		    Encoding encoding = connection.getEncoding();
+	
+		    char[] cbuf = new char[bufferSize];
+		    int len;
+		    CopyIn cp = copyIn(sql, connection);
+		    try {
+		      while ((len = from.read(cbuf)) >= 0) {
+		        if (len > 0) {
+		          byte[] buf = encoding.encode(new String(cbuf, 0, len));
+		          cp.writeToCopy(buf, 0, buf.length);
+		        }
+		      }
+		      return cp.endCopy();
+		    } finally { // see to it that we do not leave the connection locked
+		      if (cp.isActive()) {
+		        cp.cancelCopy();
+		      }
+		    }
+		  }
+	*/	  
 	  
-	    Encoding encoding = connection.getEncoding();
-
-	    char[] cbuf = new char[bufferSize];
-	    int len;
-	    CopyIn cp = copyIn(sql, connection);
-	    try {
-	      while ((len = from.read(cbuf)) >= 0) {
-	        if (len > 0) {
-	          byte[] buf = encoding.encode(new String(cbuf, 0, len));
-	          cp.writeToCopy(buf, 0, buf.length);
-	        }
-	      }
-	      return cp.endCopy();
-	    } finally { // see to it that we do not leave the connection locked
-	      if (cp.isActive()) {
-	        cp.cancelCopy();
-	      }
-	    }
-	  }
-  
-  public CopyIn copyIn(String sql, BaseConnection connection) throws SQLException {
-	    QueryExecutor queryExecutor = connection.getQueryExecutor();
-	    CopyOperation op = queryExecutor.startCopy(sql, connection.getAutoCommit());
-	    if (op == null || op instanceof CopyIn) {
-	      return (CopyIn) op;
-	    } else {
-	      op.cancelCopy();
-	      throw new PSQLException(GT.tr("Requested CopyIn but got {0}", op.getClass().getName()),
-	              PSQLState.WRONG_OBJECT_TYPE);
-	    }
-	  }
+	/*
+	  public CopyIn copyIn(String sql, BaseConnection connection) throws SQLException {
+		    QueryExecutor queryExecutor = connection.getQueryExecutor();
+		    CopyOperation op = queryExecutor.startCopy(sql, connection.getAutoCommit());
+		    if (op == null || op instanceof CopyIn) {
+		      return (CopyIn) op;
+		    } else {
+		      op.cancelCopy();
+		      throw new PSQLException(GT.tr("Requested CopyIn but got {0}", op.getClass().getName()),
+		              PSQLState.WRONG_OBJECT_TYPE);
+		    }
+		  }
+	*/
 
 
 	public void getAndWriteJson(String filename, TableType tableType) throws Exception {
@@ -220,6 +224,8 @@ public class TablesLoader {
 			    Thread.sleep(60000);
 			}
 			else {
+				Connection conn = DataSourceUtils.getConnection(datasource);
+				conn.setAutoCommit(false);
 
 				CsvSchema csv = CsvSchema.emptySchema().withHeader();
 				CsvMapper csvMapper = new CsvMapper();
@@ -252,23 +258,17 @@ public class TablesLoader {
 								routesRepository.save(routes);
 							}
 
-							/*
-							 * if (tableType == TableType.TRIPS) { Trips trips =
-							 * gson.fromJson(jsonResultStr, Trips.class); trips_list.add(trips); }
-							 */
-
 						}
 					}
 
-					/*
-					 * if (tableType == TableType.TRIPS) { tripsRepository.saveAll(trips_list);
-					 * log.info("Trips - salvataggio..." + String.valueOf(j)); }
-					 */
-
 					j += i;
 				}
+				conn.commit();
+				conn.setAutoCommit(false);
+				
 			}
 		} catch (Exception e) {
+			
 			e.printStackTrace();
 		}
 
