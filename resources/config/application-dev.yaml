@@ -48,10 +48,9 @@ app:
   load_tables_at_start: false
   operator_username: damiano
   operator_password: Damiano123
-  sender_id: 66
+  sender_id_metro: 99
+  sender_id_bus: 98
   
-#https://coll-extapi.whereapp.it/
-
 #spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.PostgreSQLDialect
 #spring.jpa.hibernate.ddl-auto=none
 #spring.jpa.show-sql=true
