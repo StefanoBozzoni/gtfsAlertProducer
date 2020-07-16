@@ -84,8 +84,11 @@ public class MessageProducer {
 	@Autowired
 	TablesLoader tablesLoader;
 
-	@Value("${app.sender_id}")
-	int appSenderId;
+	@Value("${app.sender_id_metro}")
+	int appSenderId_metro;
+
+	@Value("${app.sender_id_bus}")
+	int appSenderId_bus;
 
 	@Value("${app.remote_gtfs_md5_url}")
 	String remote_gtfs_md5_url;
@@ -130,7 +133,8 @@ public class MessageProducer {
 
 				try {
 					downloadFiles(); // scarica i file dal link di Roma mobilità
-					applicationBean.getTaskScheduler().cancel(false); // stoppa il processo di scheduling
+					// applicationBean.getTaskScheduler().cancel(false); // stoppa il processo di
+					// scheduling
 					tablesLoader.loadTables(); // carica le tabelle dai files scaricati
 					sendMessages(); // Sends messages to whereapp
 					applicationBean.setMd5Checksum(md5CheckSum); // memorizza il nuovo checksum
@@ -138,16 +142,22 @@ public class MessageProducer {
 				} catch (Exception e) {
 					// Riavvia lo scheduling
 					log.info("Errore durante il processo di acquisizione tabelle ed invio messaggi: " + e.getMessage());
-				} finally {
-					log.info("restarting scheduler");
-					applicationBean.restartScheduler();
 				}
+
 			} else {
 				sendMessages(); // Sends messages to whereapp
 			}
 
 		} catch (Exception e) {
 			log.info(e.getMessage());
+		} 
+		finally {
+			log.info("restarting scheduler");
+			try {
+				applicationBean.restartScheduler();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 
 	}
@@ -217,6 +227,9 @@ public class MessageProducer {
 					break;
 
 				Routes currRoute = foundRoute.get();
+				int route_type   = currRoute.getRouteType();
+				int currSenderId = (route_type==3)?appSenderId_bus:appSenderId_metro;
+				
 				String currRouteShortName = currRoute.getRouteShortName();
 
 				log.info("Before getArea");
@@ -244,16 +257,10 @@ public class MessageProducer {
 				ZetaRoute zr = gtfsRepository.findZetaRouteByIdroute(currIdRoute);
 
 				/*
-				Integer zrIdAlert;
-				if (zr == null)
-					zrIdAlert = 0;
-				else {
-					if (zr.getIdalert_last() == null) {
-						zrIdAlert = 0;
-					} else
-						zrIdAlert = zr.getIdalert_last();
-				}
-				*/
+				 * Integer zrIdAlert; if (zr == null) zrIdAlert = 0; else { if
+				 * (zr.getIdalert_last() == null) { zrIdAlert = 0; } else zrIdAlert =
+				 * zr.getIdalert_last(); }
+				 */
 
 				log.info("************ELABORATO***********: "
 						+ gtfsRepository.isAlertElaborated(currIdAlert).toString());
@@ -266,7 +273,7 @@ public class MessageProducer {
 					@SuppressWarnings("serial")
 					CreateAreaRequest areaRequest = new CreateAreaRequest() {
 						{
-							senderId = appSenderId;
+							senderId = currSenderId;
 							areaName = currRouteShortName;
 						}
 					};
@@ -280,7 +287,6 @@ public class MessageProducer {
 					CreateAreaResponse response = gtfsService.createAreaAstext(areaRequest);
 
 					try {
-
 						// Inserisce o aggiorna su DB (tabella zeta_route) l'area, l'IdRoute e la
 						// descrizione della Route
 						if (zr == null) // se il record non c'è, lo inserisco
@@ -291,7 +297,9 @@ public class MessageProducer {
 						}
 
 						// Invio messaggio di alert
-						sendMessagesToNewWhereApp(startMsgDate, endMsgDate, messageTitle, messageBody, response.areaId);
+						// if (route_type==3) appSender relativo ad i BUS else relativo alle metro
+						sendMessagesToNewWhereApp(startMsgDate, endMsgDate, messageTitle, messageBody, response.areaId,
+								currSenderId);
 						gtfsRepository.registerAlert(currIdAlert, Constants.ELABORATA);
 
 					} catch (Exception e) {
@@ -308,13 +316,13 @@ public class MessageProducer {
 
 	}
 
-	private void sendMessagesToNewWhereApp(String startDate, String endDate, String title, String body, Integer areaId)
-			throws IOException {
+	private void sendMessagesToNewWhereApp(String startDate, String endDate, String title, String body, Integer areaId,
+			Integer senderId) throws IOException {
 		// Invio il servizio di notifica di whereapp
 		PostMessageByAreaRequest messageRequest = new PostMessageByAreaRequest();
 		messageRequest.setStartDate(startDate);
 		messageRequest.setEndDate(endDate);
-		messageRequest.setSenderId(appSenderId);
+		messageRequest.setSenderId(senderId);
 		messageRequest.setLanguage("IT");
 		messageRequest.setCategoryCode("CTG21"); // Trasporto pubblico
 		messageRequest.setSubject(title);
@@ -336,6 +344,7 @@ public class MessageProducer {
 	private List<Points> getGeoPoints(long IdRoute) {
 		log.info("before executing query");
 		try {
+			routesRepository.flush();
 			List<Object[]> object_list = routesRepository.findPointsByRouteId2(IdRoute);
 			List<Points> points_list = object_list.stream().map((Object[] el) -> {
 				BigDecimal lat = new BigDecimal(el[0].toString());

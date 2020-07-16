@@ -17,6 +17,7 @@ import javax.sql.DataSource;
 import javax.transaction.Transactional;
 
 import org.json.JSONObject;
+import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.copy.CopyOperation;
@@ -80,7 +81,7 @@ public class TablesLoader {
 
 	@Value("${app.local_unzip_dir}")
 	String local_unzip_dir;
-	
+
 	@Autowired
 	private Environment env;
 
@@ -95,10 +96,10 @@ public class TablesLoader {
 		gson = new GsonBuilder().setLenient().serializeNulls().excludeFieldsWithoutExposeAnnotation().create();
 
 		agencyRepository.deleteAllInBatch();
-		getAndWriteJson(local_unzip_dir+"/agency.txt", TableType.AGENCY);
+		getAndWriteJson(local_unzip_dir + "/agency.txt", TableType.AGENCY);
 
 		routesRepository.deleteAllInBatch();
-		getAndWriteJson(local_unzip_dir+"/routes.txt", TableType.ROUTES);
+		getAndWriteJson(local_unzip_dir + "/routes.txt", TableType.ROUTES);
 
 		tripsRepository.deleteAllInBatch();
 		tripsRepository.flush();
@@ -107,7 +108,7 @@ public class TablesLoader {
 
 		shapesRepository.deleteAllInBatch();
 		shapesRepository.flush();
-		//this.jdbcTemplate.update("delete from shapes");
+		// this.jdbcTemplate.update("delete from shapes");
 		getAndWriteJson(local_unzip_dir + "/shapes.txt", TableType.SHAPES);
 		shapesRepository.flush();
 	}
@@ -117,93 +118,69 @@ public class TablesLoader {
 
 		// Connection conn = datasource.getConnection();
 		/*
-		BaseConnection pgConnection = datasource.getConnection().unwrap(BaseConnection.class);
-		CopyManager copyManager = new CopyManager(pgConnection);
-		CopyIn cp2 = copyManager.copyIn("COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)");
-		//cp2.writeToCopy(writer);
+		 * BaseConnection pgConnection =
+		 * datasource.getConnection().unwrap(BaseConnection.class); CopyManager
+		 * copyManager = new CopyManager(pgConnection); CopyIn cp2 =
+		 * copyManager.copyIn("COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)");
+		 * //cp2.writeToCopy(writer);
+		 * 
+		 * String str; char[] cbuf = new char[1024]; try { while ( !( str =
+		 * reader.readLine()).isEmpty()) { byte[] bytes = str.getBytes();
+		 * cp2.writeToCopy(bytes, 0, bytes.length); } cp2.endCopy(); } finally { // see
+		 * to it that we do not leave the connection locked if(cp2.isActive())
+		 * cp2.cancelCopy(); }
+		 */
 
-		String str;
-		char[] cbuf = new char[1024];
-		try {
-		    while ( !( str = reader.readLine()).isEmpty()) {
-		    	byte[] bytes = str.getBytes();
-		        cp2.writeToCopy(bytes, 0, bytes.length);
-		    }
-		    cp2.endCopy();
-		} finally { // see to it that we do not leave the connection locked
-		    if(cp2.isActive())
-		        cp2.cancelCopy();
-		}
-		*/
-		
 		// try (Connection conn = DriverManager.getConnection(connUrl, myUid, myPwd)) {
-		//try (BaseConnection pgConnection = datasource.getConnection().unwrap(BaseConnection.class)) {
-		try (Connection pgConnection = DriverManager.getConnection(connUrl, myUid, myPwd)) { 
+		// try (BaseConnection pgConnection =
+		// datasource.getConnection().unwrap(BaseConnection.class)) {
+		try (Connection pgConnection = DriverManager.getConnection(connUrl, myUid, myPwd)) {
 			pgConnection.setAutoCommit(false);
-			//pgConnection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+			pgConnection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
 			/*
-		    Statement stat = pgConnection.createStatement();
-		    String sqlDelete = "Delete from "+tableName;
-		    stat.execute(sqlDelete);
-		    pgConnection.commit();
-		    stat.close();
-		    */
+			 * Statement stat = pgConnection.createStatement(); String sqlDelete =
+			 * "Delete from "+tableName; stat.execute(sqlDelete); pgConnection.commit();
+			 * stat.close();
+			 */
 			BufferedReader reader = new BufferedReader(new FileReader(fileName));
-			CopyManager copyManager = ((BaseConnection)pgConnection).getCopyAPI();
-			long rowsInserted = copyManager.copyIn(
-					"COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)", reader);
+			CopyManager copyManager = new CopyManager((BaseConnection) pgConnection); //((BaseConnection) pgConnection).getCopyAPI();
+			long rowsInserted = copyManager.copyIn("COPY " + tableName + " FROM STDIN (FORMAT csv, HEADER)", reader);
 			log.info(String.format("Table %s : %d row(s) inserted%n", tableName, rowsInserted));
 			reader.close();
-			pgConnection.commit();			
-			pgConnection.setAutoCommit(false);	//non rimuovere, sembra che questa istruzione impedisca che la query successiva si pianti (è un bug di postgres jdbc)	
+			pgConnection.commit();
+			pgConnection.setAutoCommit(false); // non rimuovere, sembra che questa istruzione impedisca che la query
+												// successiva si pianti (è un bug di postgres jdbc)
 			pgConnection.setAutoCommit(true);
-			
+
 			copyManager = null;
 			reader = null;
 			DataSourceUtils.releaseConnection(pgConnection, datasource);
 			pgConnection.close();
 		}
 	}
-	
-	/*
-		public long copyIn(final String sql, Reader from, int bufferSize, BaseConnection connection)
-		      throws SQLException, IOException {
-		  
-		    Encoding encoding = connection.getEncoding();
-	
-		    char[] cbuf = new char[bufferSize];
-		    int len;
-		    CopyIn cp = copyIn(sql, connection);
-		    try {
-		      while ((len = from.read(cbuf)) >= 0) {
-		        if (len > 0) {
-		          byte[] buf = encoding.encode(new String(cbuf, 0, len));
-		          cp.writeToCopy(buf, 0, buf.length);
-		        }
-		      }
-		      return cp.endCopy();
-		    } finally { // see to it that we do not leave the connection locked
-		      if (cp.isActive()) {
-		        cp.cancelCopy();
-		      }
-		    }
-		  }
-	*/	  
-	  
-	/*
-	  public CopyIn copyIn(String sql, BaseConnection connection) throws SQLException {
-		    QueryExecutor queryExecutor = connection.getQueryExecutor();
-		    CopyOperation op = queryExecutor.startCopy(sql, connection.getAutoCommit());
-		    if (op == null || op instanceof CopyIn) {
-		      return (CopyIn) op;
-		    } else {
-		      op.cancelCopy();
-		      throw new PSQLException(GT.tr("Requested CopyIn but got {0}", op.getClass().getName()),
-		              PSQLState.WRONG_OBJECT_TYPE);
-		    }
-		  }
-	*/
 
+	/*
+	 * public long copyIn(final String sql, Reader from, int bufferSize,
+	 * BaseConnection connection) throws SQLException, IOException {
+	 * 
+	 * Encoding encoding = connection.getEncoding();
+	 * 
+	 * char[] cbuf = new char[bufferSize]; int len; CopyIn cp = copyIn(sql,
+	 * connection); try { while ((len = from.read(cbuf)) >= 0) { if (len > 0) {
+	 * byte[] buf = encoding.encode(new String(cbuf, 0, len)); cp.writeToCopy(buf,
+	 * 0, buf.length); } } return cp.endCopy(); } finally { // see to it that we do
+	 * not leave the connection locked if (cp.isActive()) { cp.cancelCopy(); } } }
+	 */
+
+	/*
+	 * public CopyIn copyIn(String sql, BaseConnection connection) throws
+	 * SQLException { QueryExecutor queryExecutor = connection.getQueryExecutor();
+	 * CopyOperation op = queryExecutor.startCopy(sql, connection.getAutoCommit());
+	 * if (op == null || op instanceof CopyIn) { return (CopyIn) op; } else {
+	 * op.cancelCopy(); throw new
+	 * PSQLException(GT.tr("Requested CopyIn but got {0}", op.getClass().getName()),
+	 * PSQLState.WRONG_OBJECT_TYPE); } }
+	 */
 
 	public void getAndWriteJson(String filename, TableType tableType) throws Exception {
 		File input = new File(filename);
@@ -216,14 +193,12 @@ public class TablesLoader {
 			// Try Download file
 			if (tableType == TableType.TRIPS) {
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.trips", filename);
-			    Thread.sleep(60000);
-			}
-			else if (tableType == TableType.SHAPES) {
+				Thread.sleep(60000);
+			} else if (tableType == TableType.SHAPES) {
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.shapes",
 						local_unzip_dir + "/shapes.txt");
-			    Thread.sleep(60000);
-			}
-			else {
+				Thread.sleep(60000);
+			} else {
 				Connection conn = DataSourceUtils.getConnection(datasource);
 				conn.setAutoCommit(false);
 
@@ -265,10 +240,10 @@ public class TablesLoader {
 				}
 				conn.commit();
 				conn.setAutoCommit(false);
-				
+
 			}
 		} catch (Exception e) {
-			
+
 			e.printStackTrace();
 		}
 

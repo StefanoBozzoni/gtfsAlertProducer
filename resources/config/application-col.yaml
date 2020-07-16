@@ -1,0 +1,79 @@
+spring:
+  jpa:
+  #devtools:
+  #  livereload:
+  #    enabled: true
+    hibernate:
+       ddl-auto: none
+    properties:
+      javax:
+        persistence:
+          query:
+            timeout: 60000
+      hibernate:
+        default_schema: app24pa_romamobilita
+        dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+        jdbc:
+          #batch_size: 500
+          order_inserts: true
+          order_updates: true 
+    #show-sql: true
+    open-in-view: false
+    database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect
+  datasource:
+    url: jdbc:postgresql://coll-pgitwa.cluster-cjn0ypqxmpig.eu-west-1.rds.amazonaws.com:5432/itwa
+    username: postgres
+    password: P0stG1tWA00
+
+
+#logging:
+#  level:
+#    org:
+#      hibernate:
+#        type:
+          #descriptor:
+          #  sql:
+          #    BasicBinder: TRACE
+#        SQL: DEBUG
+
+              
+#application properties setup
+app:
+  message_api_url: http://217.61.43.7:9081/itwa/be-messages/
+  #dev message_api_url: http://172.16.0.113:9081/itwa/be-messages/
+  #message_api_url: https://coll-aru-24sender.app24pa.it/rest/
+  alert_url_address: https://romamobilita.it/sites/default/files/rome_rtgtfs_service_alerts_feed.pb
+  initial_scheduler_ms_interval: 10
+  remote_gtfs_md5_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip.md5
+  local_gtfs_md5_filepath: c:/temp/rome_static_gtfs.txt
+  remote_gtfs_zip_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip
+  local_gtfs_zip_path: c:/temp/rome_static_gtfs.zip
+  local_unzip_dir: c:/temp/prova
+  persist_md5_path: c:/temp/md5.txt
+  load_tables_at_start: false
+  operator_username: romamobilitausr
+  operator_password: Damiano123
+  sender_id_metro: 99
+  sender_id_bus: 98
+  
+#https://coll-extapi.whereapp.it/
+
+#spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.PostgreSQLDialect
+#spring.jpa.hibernate.ddl-auto=none
+#spring.jpa.show-sql=true
+#spring.datasource.url=jdbc:postgresql://172.16.0.113:5432/itwa
+#spring.datasource.username=postgres
+#spring.datasource.password=@vjtech@
+#spring.jpa.properties.hibernate.default_schema=schematest
+
+
+#spring.datasource.initialization-mode=always
+#spring.datasource.initialize=true
+#spring.datasource.schema=classpath:/schema.sql
+#spring.datasource.continue-on-error=true
+
+#application properties setup
+#app.message_api_url = https://coll-extapi.whereapp.it/

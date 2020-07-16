@@ -68,5 +68,15 @@
     "name": "app.initial_scheduler_ms_interval",
     "type": "java.lang.String",
     "description": "A description for 'app.initial_scheduler_ms_interval'"
+  },
+  {
+    "name": "app.sender_id_metro",
+    "type": "java.lang.String",
+    "description": "A description for 'app.sender_id_metro'"
+  },
+  {
+    "name": "app.sender_id_bus",
+    "type": "java.lang.String",
+    "description": "A description for 'app.sender_id_bus'"
   }
 ]}

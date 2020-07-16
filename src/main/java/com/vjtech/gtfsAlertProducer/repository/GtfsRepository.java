@@ -34,7 +34,7 @@ public class GtfsRepository {
 		zrRec.setGeogArea(geometry);
 		zrRec.setIdroute(idRoute);
 		zrRec.setText("Linea: " + routeShortDescr);
-		zrRec.setId(currIdAlert);
+		zrRec.setIdalert_last(currIdAlert);
 		zrRec.setIdarea(areaId);
 		try {
 			zetaRouteRepository.saveAndFlush(zrRec);

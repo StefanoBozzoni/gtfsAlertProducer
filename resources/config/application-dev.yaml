@@ -9,21 +9,17 @@ spring:
       hibernate:
         default_schema: app24pa_romamobilita
         dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
-        cache:
-          use_second_level_cache: false
-          use_query_cache: false
         jdbc:
           batch_size: 500
-          order_inserts: true
-          order_updates: true 
     #show-sql: true
     open-in-view: false
     database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect
   datasource:
-    url: jdbc:postgresql://coll-pgitwa.cluster-cjn0ypqxmpig.eu-west-1.rds.amazonaws.com:5432/itwa
+    hikari:
+      leak-detection-threshold: 30000 # 30 seconds  
+    url: jdbc:postgresql://172.16.0.113:5432/itwa
     username: postgres
-    password: P0stG1tWA00
-
+    password: '@vjtech@'  
 
 #logging:
 #  level:
@@ -52,7 +48,7 @@ app:
   load_tables_at_start: false
   operator_username: damiano
   operator_password: Damiano123
-  sender_id: 89
+  sender_id: 66
   
 #https://coll-extapi.whereapp.it/
 
