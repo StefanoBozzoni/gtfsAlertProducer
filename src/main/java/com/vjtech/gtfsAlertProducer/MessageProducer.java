@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -28,14 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.unbescape.html.HtmlEscape;
 
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import com.google.protobuf.TextFormat.ParseException;
 import com.google.transit.realtime.GtfsRealtime.Alert;
 import com.google.transit.realtime.GtfsRealtime.FeedEntity;
 import com.google.transit.realtime.GtfsRealtime.FeedMessage;
@@ -54,8 +48,8 @@ import com.vjtech.gtfsAlertProducer.services.model.CreateAreaResponse;
 import com.vjtech.gtfsAlertProducer.services.model.JobZoneRequest;
 import com.vjtech.gtfsAlertProducer.services.model.PostMessageByAreaRequest;
 import com.vjtech.gtfsAlertProducer.services.model.PostMessageByAreaResponse;
-import com.vjtech.gtfsAlertProducer.services.session.GtfsService;
 import com.vjtech.gtfsAlertProducer.services.session.ApplicationBean;
+import com.vjtech.gtfsAlertProducer.services.session.GtfsService;
 
 @Component
 public class MessageProducer {
@@ -133,14 +127,11 @@ public class MessageProducer {
 
 				try {
 					downloadFiles(); // scarica i file dal link di Roma mobilità
-					// applicationBean.getTaskScheduler().cancel(false); // stoppa il processo di
-					// scheduling
+					// applicationBean.getTaskScheduler().cancel(false); // stoppa il processo discheduling
 					tablesLoader.loadTables(); // carica le tabelle dai files scaricati
-					sendMessages(); // Sends messages to whereapp
 					applicationBean.setMd5Checksum(md5CheckSum); // memorizza il nuovo checksum
 					applicationBean.persistMd5Checksum(); // ...e lo scrive su disco
 				} catch (Exception e) {
-					// Riavvia lo scheduling
 					log.info("Errore durante il processo di acquisizione tabelle ed invio messaggi: " + e.getMessage());
 				}
 

@@ -193,11 +193,11 @@ public class TablesLoader {
 			// Try Download file
 			if (tableType == TableType.TRIPS) {
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.trips", filename);
-				Thread.sleep(60000);
+				//Thread.sleep(60000);
 			} else if (tableType == TableType.SHAPES) {
 				loadFile(dbConnectionUrl, dbUserName, dbPassword, "app24pa_romamobilita.shapes",
 						local_unzip_dir + "/shapes.txt");
-				Thread.sleep(60000);
+				//Thread.sleep(60000);
 			} else {
 				Connection conn = DataSourceUtils.getConnection(datasource);
 				conn.setAutoCommit(false);

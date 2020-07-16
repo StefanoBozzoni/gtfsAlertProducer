@@ -15,8 +15,8 @@ spring:
     open-in-view: false
     database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect
   datasource:
-    hikari:
-      leak-detection-threshold: 30000 # 30 seconds  
+    #hikari:
+      #leak-detection-threshold: 30000 # 30 seconds  
     url: jdbc:postgresql://172.16.0.113:5432/itwa
     username: postgres
     password: '@vjtech@'  
