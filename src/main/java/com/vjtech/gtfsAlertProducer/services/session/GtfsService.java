@@ -74,8 +74,12 @@ public class GtfsService {
 		
 		Call<CreateAreaResponse> retrofitCall = service.createAreaAsText(areaRequest);		
 		Response<CreateAreaResponse> response = retrofitCall.execute();		
+		
 		if (!response.isSuccessful()) {
-			throw new IOException(response.errorBody() != null ? response.errorBody().string() : "Unknown error, call to api Areas service failed ");
+			if (response.errorBody() != null) {				
+				throw new IOException(!response.errorBody().string().isEmpty() ? response.errorBody().string() : "Unknown error, call to api Areas service failed, maybe a different sender ");
+			} else
+				throw new IOException("Unknown error, call to api Areas service failed");	
 		}		
 		return response.body();
 		
@@ -95,7 +99,9 @@ public class GtfsService {
 		if (!response.isSuccessful()) {
 			throw new IOException(response.errorBody() != null ? response.errorBody().string() : "Unknown error, call to api post message failed");
 		}		
-		return response.body();
+		PostMessageByAreaResponse respo = response.body();
+		
+		return respo;
 		
 	}
 

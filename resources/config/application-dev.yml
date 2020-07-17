@@ -38,7 +38,7 @@ app:
   message_api_url: http://172.16.0.113:9081/itwa/be-messages/
   #message_api_url: https://coll-aru-24sender.app24pa.it/rest/
   alert_url_address: https://romamobilita.it/sites/default/files/rome_rtgtfs_service_alerts_feed.pb
-  initial_scheduler_ms_interval: 10	
+  initial_scheduler_ms_interval: 900
   remote_gtfs_md5_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip.md5
   local_gtfs_md5_filepath: c:/temp/rome_static_gtfs.txt
   remote_gtfs_zip_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip

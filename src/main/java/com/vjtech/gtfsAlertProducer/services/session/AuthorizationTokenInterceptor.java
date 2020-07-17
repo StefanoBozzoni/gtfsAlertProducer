@@ -14,14 +14,14 @@ import okhttp3.Response;
 public class AuthorizationTokenInterceptor implements Interceptor {
 
 	@Autowired
-	ApplicationBean sessionDatasource;
+	ApplicationBean applicationBean;
 
 	@Autowired
 	SessionService sessionService;
 
 	@Override
 	public Response intercept(Chain chain) throws IOException {
-		String accessToken = sessionDatasource.getAccessToken();
+		String accessToken = applicationBean.getAccessToken();
 		Request request = newRequestWithAccessToken(chain.request(), accessToken);
 		Response response = chain.proceed(request);
 
@@ -31,16 +31,19 @@ public class AuthorizationTokenInterceptor implements Interceptor {
 
 			if (accessToken != newAccessToken) {
 				//we memorize the new tokens in memory
-				sessionDatasource.setAccessToken(newAccessToken);
-				sessionDatasource.setRefreshToken(newAccessTokenResp.refreshToken);
+				applicationBean.setAccessToken(newAccessToken);
+				applicationBean.setRefreshToken(newAccessTokenResp.refreshToken);
 				// if accessToken is changed we need another accessToken
+				response.close();
 				return chain.proceed(newRequestWithAccessToken(request, newAccessToken));
 			} else {
 				// if accessToken isn't changed we use the refreshToken
-				final String refreshToken = sessionDatasource.getRefreshToken();
+				final String refreshToken = applicationBean.getRefreshToken();
+				response.close();
 				return chain.proceed(newRequestWithAccessToken(request, refreshToken));
 			}
 		}
+		
 		return response;
 
 	}

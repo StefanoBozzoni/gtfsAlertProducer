@@ -185,13 +185,13 @@ public class MessageProducer {
 
 			// recupero informazioni alert e route
 			long timeStampStart = alert.getActivePeriod(0).getStart();
-			long timeStampEnd = alert.getActivePeriod(0).getEnd();
+			long timeStampEnd   = alert.getActivePeriod(0).getEnd();
 
 			String startMsgDate = AppUtils.getDateStringFromPosixTimeStamp(timeStampStart);
-			String endMsgDate = AppUtils.getDateStringFromPosixTimeStamp(timeStampEnd);
+			String endMsgDate   = AppUtils.getDateStringFromPosixTimeStamp(timeStampEnd);
 
 			String messageTitle = HtmlEscape.unescapeHtml(alert.getHeaderText().getTranslation(0).getText());
-			String messageBody = HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText());
+			String messageBody  = HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText());
 
 			log.info(messageTitle);
 
@@ -221,7 +221,7 @@ public class MessageProducer {
 				int route_type   = currRoute.getRouteType();
 				int currSenderId = (route_type==3)?appSenderId_bus:appSenderId_metro;
 				
-				String currRouteShortName = currRoute.getRouteShortName();
+				String currRouteShortName = "Linea "+currRoute.getRouteShortName();
 
 				log.info("Before getArea");
 				String areaStr = getAreaAsString(currIdRoute);
@@ -260,7 +260,7 @@ public class MessageProducer {
 				// l'idalert non è stato ancora registrato in tabella (non è stao elaborato)...
 				if (zr == null
 						|| (zr != null && (zr.getIdarea() == null || !gtfsRepository.isAlertElaborated(currIdAlert)))) { // currIdAlert>zrIdAlert
-					log.info(bufferLine.toText());
+					//log.info(bufferLine.toText());
 					@SuppressWarnings("serial")
 					CreateAreaRequest areaRequest = new CreateAreaRequest() {
 						{
@@ -328,7 +328,7 @@ public class MessageProducer {
 		List<String> listPoints = getGeoPoints(idRoute).stream()
 				.map((Points el) -> el.getLongitude() + " " + el.getLatitude()).collect(Collectors.toList());
 		String points_str = Strings.join(listPoints, ',');
-		log.info(points_str);
+		//log.info(points_str);
 		return points_str.isEmpty() ? "" : "LINESTRING(" + points_str + ")";
 	}
 
