@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 
 import com.vjtech.gtfsAlertProducer.Utils.Constants;
 import com.vjtech.gtfsAlertProducer.database.model.AlertHistory;
+import com.vjtech.gtfsAlertProducer.database.model.AlertRouteHistory;
+import com.vjtech.gtfsAlertProducer.database.model.AlertRouteHistoryPK;
 import com.vjtech.gtfsAlertProducer.database.model.ZetaRoute;
 
 @Component
@@ -25,6 +27,9 @@ public class GtfsRepository {
 
 	@Autowired
 	AlertHistoryRepository alertHistoryRepository;
+	
+	@Autowired
+	AlertRouteHistoryRepository alertRouteHistoryRepository;
 
 	private static final Logger log = LoggerFactory.getLogger(GtfsRepository.class);
 
@@ -74,13 +79,26 @@ public class GtfsRepository {
 		alertHistoryRepository.save(alertEntity);
 	}
 	
+	public void registerAlertAndRoute(Integer idAlert,Integer idRoute, String status) {
+		AlertRouteHistory alertEntity = new AlertRouteHistory();
+		alertEntity.setAlertRouteHistoryPK(new AlertRouteHistoryPK(idAlert, idRoute));
+		alertEntity.setStatus(status);
+		alertRouteHistoryRepository.save(alertEntity);
+	}
+
+	
 	public Boolean isAlertElaborated(Integer idAlert) {
 		AlertHistory alertEntity = alertHistoryRepository.findById(idAlert).orElse(null);
-		
-		if (alertEntity!=null) log.info("Alert Entity="+alertEntity.toString());
-		
+		//if (alertEntity!=null) log.info("Alert Entity="+alertEntity.toString());		
 		return (alertEntity!=null && alertEntity.getStatus().equals(Constants.ELABORATA));
 	}
 	
+	public Boolean isAlertAndRouteElaborated(Integer idAlert, Integer idRoute) {
+		
+		Optional<AlertRouteHistory> alertEntity = alertRouteHistoryRepository.findById(new AlertRouteHistoryPK(idAlert, idRoute));
+		if (!alertEntity.isPresent()) return false;
+		return (alertEntity!=null && alertEntity.get().getStatus().equals(Constants.ELABORATA));
+	}
 
+	
 }

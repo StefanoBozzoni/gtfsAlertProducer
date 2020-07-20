@@ -48,11 +48,11 @@ app:
   alert_url_address: https://romamobilita.it/sites/default/files/rome_rtgtfs_service_alerts_feed.pb
   initial_scheduler_ms_interval: 30
   remote_gtfs_md5_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip.md5
-  local_gtfs_md5_filepath: c:/temp/rome_static_gtfs.txt
+  local_gtfs_md5_filepath: ./gtfs-files/rome_static_gtfs.txt
   remote_gtfs_zip_url: https://romamobilita.it/sites/default/files/rome_static_gtfs.zip
-  local_gtfs_zip_path: c:/temp/rome_static_gtfs.zip
-  local_unzip_dir: c:/temp/unzip
-  persist_md5_path: c:/temp/md5.txt
+  local_gtfs_zip_path: ./gtfs-files/rome_static_gtfs.zip
+  local_unzip_dir: ./gtfs-files/unzip
+  persist_md5_path: ./gtfs-files/md5.txt
   load_tables_at_start: false
   operator_username: romamobilitausr
   operator_password: Damiano123

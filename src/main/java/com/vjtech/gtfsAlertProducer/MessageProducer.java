@@ -109,7 +109,8 @@ public class MessageProducer {
 				applicationBean.loadMd5ChecksumFromDisk();
 
 			// donwload md5 checksum file
-			FileUtils.copyURLToFile(new URL(remote_gtfs_md5_url), new File(local_gtfs_md5_filepath), CONNECT_TIMEOUT, READ_TIMEOUT);
+			FileUtils.copyURLToFile(new URL(remote_gtfs_md5_url), new File(local_gtfs_md5_filepath), CONNECT_TIMEOUT,
+					READ_TIMEOUT);
 
 			String md5CheckSum = "";
 			try {
@@ -127,7 +128,8 @@ public class MessageProducer {
 
 				try {
 					downloadFiles(); // scarica i file dal link di Roma mobilità
-					// applicationBean.getTaskScheduler().cancel(false); // stoppa il processo discheduling
+					// applicationBean.getTaskScheduler().cancel(false); // stoppa il processo
+					// discheduling
 					tablesLoader.loadTables(); // carica le tabelle dai files scaricati
 					applicationBean.setMd5Checksum(md5CheckSum); // memorizza il nuovo checksum
 					applicationBean.persistMd5Checksum(); // ...e lo scrive su disco
@@ -141,8 +143,7 @@ public class MessageProducer {
 
 		} catch (Exception e) {
 			log.info(e.getMessage());
-		} 
-		finally {
+		} finally {
 			log.info("restarting scheduler");
 			try {
 				applicationBean.restartScheduler();
@@ -170,7 +171,7 @@ public class MessageProducer {
 
 	private void sendMessages() throws IOException {
 
-		log.info("Inizio CreateArea");
+		log.info("Inizio elaborazione messaggi di alert ...");
 		URL url = new URL(alert_url_address);
 		FeedMessage feed = FeedMessage.parseFrom(url.openStream());
 
@@ -181,20 +182,20 @@ public class MessageProducer {
 			Alert alert = entity.getAlert();
 			Integer currIdAlert = Integer.parseInt(entity.getId());
 
-			log.info("***********AREA: " + currIdAlert);
+			log.info("*********** ID ALERT: " + currIdAlert);
 
 			// recupero informazioni alert e route
 			long timeStampStart = alert.getActivePeriod(0).getStart();
-			long timeStampEnd   = alert.getActivePeriod(0).getEnd();
+			long timeStampEnd = alert.getActivePeriod(0).getEnd();
 
 			String startMsgDate = AppUtils.getDateStringFromPosixTimeStamp(timeStampStart);
-			String endMsgDate   = AppUtils.getDateStringFromPosixTimeStamp(timeStampEnd);
+			String endMsgDate = AppUtils.getDateStringFromPosixTimeStamp(timeStampEnd);
 
 			String messageTitle = HtmlEscape.unescapeHtml(alert.getHeaderText().getTranslation(0).getText());
-			String messageBody  = HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText());
+			String messageBody = HtmlEscape.unescapeHtml(alert.getDescriptionText().getTranslation(0).getText());
 
 			log.info(messageTitle);
-
+			boolean errori_invio = false;
 			for (int j = 0; j < alert.getInformedEntityCount(); j++) {
 
 				String routeIdStr = alert.getInformedEntity(j).getRouteId();
@@ -218,40 +219,12 @@ public class MessageProducer {
 					break;
 
 				Routes currRoute = foundRoute.get();
-				int route_type   = currRoute.getRouteType();
-				int currSenderId = (route_type==3)?appSenderId_bus:appSenderId_metro;
-				
-				String currRouteShortName = "Linea "+currRoute.getRouteShortName();
+				int route_type = currRoute.getRouteType();
+				int currSenderId = (route_type == 3) ? appSenderId_bus : appSenderId_metro;
 
-				log.info("Before getArea");
-				String areaStr = getAreaAsString(currIdRoute);
-				log.info("After getArea");
-
-				if (areaStr.isEmpty()) {
-					log.info("Punti dell'area non trovati!");
-					break;
-				}
-
-				GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-				WKTReader reader = new WKTReader(geometryFactory);
-
-				LineString line = null;
-				Geometry bufferLine = null;
-
-				try {
-					line = (LineString) reader.read(areaStr);
-					bufferLine = line.buffer(0.002);
-				} catch (org.locationtech.jts.io.ParseException p) {
-					log.info("geography parse exception");
-				}
+				String currRouteShortName = "Linea " + currRoute.getRouteShortName();
 
 				ZetaRoute zr = gtfsRepository.findZetaRouteByIdroute(currIdRoute);
-
-				/*
-				 * Integer zrIdAlert; if (zr == null) zrIdAlert = 0; else { if
-				 * (zr.getIdalert_last() == null) { zrIdAlert = 0; } else zrIdAlert =
-				 * zr.getIdalert_last(); }
-				 */
 
 				log.info("************ELABORATO***********: "
 						+ gtfsRepository.isAlertElaborated(currIdAlert).toString());
@@ -260,51 +233,91 @@ public class MessageProducer {
 				// l'idalert non è stato ancora registrato in tabella (non è stao elaborato)...
 				if (zr == null
 						|| (zr != null && (zr.getIdarea() == null || !gtfsRepository.isAlertElaborated(currIdAlert)))) { // currIdAlert>zrIdAlert
-					//log.info(bufferLine.toText());
-					@SuppressWarnings("serial")
-					CreateAreaRequest areaRequest = new CreateAreaRequest() {
-						{
-							senderId = currSenderId;
-							areaName = currRouteShortName;
+
+					if (!gtfsRepository.isAlertAndRouteElaborated(currIdAlert, currIdRoute)) {
+						
+						Geometry bufferLine = getAreaAsGeometry(currIdRoute);
+						if (bufferLine == null)
+							break;
+
+						@SuppressWarnings("serial")
+						CreateAreaRequest areaRequest = new CreateAreaRequest() {
+							{
+								senderId = currSenderId;
+								areaName = currRouteShortName;
+							}
+						};
+
+						areaRequest.textArea = bufferLine.toText();
+						if (zr != null)
+							areaRequest.areaId = zr.getIdarea();
+
+						try {
+
+							// Il servizio seguente inserisce l'area se areaRequest.areaId é null altrimenti
+							// restituisce l'area associata all'idRoute Inviata
+							CreateAreaResponse response = gtfsService.createAreaAstext(areaRequest);
+
+							// Inserisce o aggiorna su DB (tabella zeta_route) l'area, l'IdRoute e la
+							// descrizione della Route
+							if (zr == null) // se il record non c'è, lo inserisco
+								gtfsRepository.insertNewArea(currIdRoute, bufferLine, currRouteShortName,
+										response.areaId, currIdAlert);
+							else { // ...altrimenti aggiorno
+								gtfsRepository.updateArea(zr, bufferLine, currRouteShortName, response.areaId,
+										currIdAlert);
+							}
+
+							// Invio messaggio di alert
+							sendMessagesToNewWhereApp(startMsgDate, endMsgDate, messageTitle, messageBody,response.areaId, currSenderId);							
+							gtfsRepository.registerAlertAndRoute(currIdAlert, currIdRoute, Constants.ELABORATA);
+
+						} catch (Exception e) {
+							errori_invio = true;
+							log.info("Errore nell'invio del messaggio:" + e.getMessage());
+							gtfsRepository.registerAlertAndRoute(currIdAlert, currIdRoute, Constants.DA_ELABORARE);
 						}
-					};
-
-					areaRequest.textArea = bufferLine.toText();
-					if (zr != null)
-						areaRequest.areaId = zr.getIdarea();
-
-					// Il servizio seguente inserisce l'area se areaRequest.areaId é null altrimenti
-					// restituisce l'area associata all'idRoute Inviata
-					CreateAreaResponse response = gtfsService.createAreaAstext(areaRequest);
-
-					try {
-						// Inserisce o aggiorna su DB (tabella zeta_route) l'area, l'IdRoute e la
-						// descrizione della Route
-						if (zr == null) // se il record non c'è, lo inserisco
-							gtfsRepository.insertNewArea(currIdRoute, bufferLine, currRouteShortName, response.areaId,
-									currIdAlert);
-						else { // ...altrimenti aggiorno
-							gtfsRepository.updateArea(zr, bufferLine, currRouteShortName, response.areaId, currIdAlert);
-						}
-
-						// Invio messaggio di alert
-						// if (route_type==3) appSender relativo ad i BUS else relativo alle metro
-						sendMessagesToNewWhereApp(startMsgDate, endMsgDate, messageTitle, messageBody, response.areaId,
-								currSenderId);
-						gtfsRepository.registerAlert(currIdAlert, Constants.ELABORATA);
-
-					} catch (Exception e) {
-
-						gtfsRepository.registerAlert(currIdAlert, Constants.DA_ELABORARE);
-						log.info("Errore nell'invio del messaggio:" + e.getMessage());
-
 					}
 				}
+			} // for (int j=0... per ogni route ...
 
-			} // for (int j=0...
+			if (!errori_invio) {
+				gtfsRepository.registerAlert(currIdAlert, Constants.ELABORATA);
+			} else {
+				gtfsRepository.registerAlert(currIdAlert, Constants.DA_ELABORARE);
+			}
+			
+		} // for (int i=0... per ogni alert ...
 
-		} // for (int i=0...
+	}
 
+	private Geometry getAreaAsGeometry(long currIdRoute) {
+		String areaStr = "";
+		try {
+			areaStr = getAreaAsString(currIdRoute);
+		} catch (Exception e) {
+			return null;
+		}
+
+		if (areaStr.isEmpty()) {
+			log.info("Punti dell'area non trovati!");
+			return null;
+		}
+
+		GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+		WKTReader reader = new WKTReader(geometryFactory);
+
+		LineString line = null;
+		Geometry bufferLine = null;
+
+		try {
+			line = (LineString) reader.read(areaStr);
+			bufferLine = line.buffer(0.002);
+		} catch (org.locationtech.jts.io.ParseException p) {
+			log.info("geography parse exception");
+		}
+
+		return bufferLine;
 	}
 
 	private void sendMessagesToNewWhereApp(String startDate, String endDate, String title, String body, Integer areaId,
@@ -328,7 +341,7 @@ public class MessageProducer {
 		List<String> listPoints = getGeoPoints(idRoute).stream()
 				.map((Points el) -> el.getLongitude() + " " + el.getLatitude()).collect(Collectors.toList());
 		String points_str = Strings.join(listPoints, ',');
-		//log.info(points_str);
+		// log.info(points_str);
 		return points_str.isEmpty() ? "" : "LINESTRING(" + points_str + ")";
 	}
 

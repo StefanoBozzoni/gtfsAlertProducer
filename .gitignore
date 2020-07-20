@@ -37,3 +37,5 @@ build/
 
 
 *.sql
+/gtfs-files/unzip/*.txt
+/gtfs-files/*.*
